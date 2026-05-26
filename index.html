@@ -2673,6 +2673,22 @@ body::after {
   .campaign-name   { max-width: 100%; }
 }
 
+/* Sync error bar — appears below header if a Firestore write fails */
+.sync-error-bar {
+  background: rgba(160, 50, 50, 0.18);
+  border: 1px solid rgba(200, 70, 60, 0.45);
+  border-radius: 5px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #d88080;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sync-error-bar:hover { background: rgba(160, 50, 50, 0.26); }
+
 </style>
 </head>
 <body data-theme="dark">
@@ -2761,13 +2777,16 @@ body::after {
       );
   }
 
-  // Upsert a warband document (id is stripped, used as doc key)
+  // Upsert a warband document (id is stripped, used as doc key).
+  // JSON round-trip strips `undefined` values — Firestore rejects them and
+  // warriors created from unit definitions often carry `note: undefined`, etc.
   async function saveWarband(code, warband) {
     const { id, ...data } = warband;
+    const clean = JSON.parse(JSON.stringify(data));
     await getDb()
       .collection("campaigns").doc(code)
       .collection("warbands").doc(id)
-      .set(data, { merge: true });
+      .set(clean);
   }
 
   // Delete a warband document
@@ -8011,6 +8030,7 @@ function App() {
   const [campaignError, setCampaignError]       = useState(null);
 
   const [lobbyOpen, setLobbyOpen]   = useState(false);
+  const [syncError, setSyncError]   = useState(null); // non-null = last sync error message
   const [page, setPage]             = useState({ name: "home" });
   const [tweaks, setTweak]          = window.useTweaks();
   const [tweaksOpen, setTweaksOpen] = useState(false);
@@ -8168,10 +8188,15 @@ function App() {
         // Mark dirty and schedule debounced sync
         dirtyIds.current.add(id);
         clearTimeout(syncTimers.current[id]);
+        const codeAtEdit = session.code;
         syncTimers.current[id] = setTimeout(() => {
-          MF.saveWarband(session.code, updated)
-            .then(() => dirtyIds.current.delete(id))
-            .catch(e => console.warn("Firestore sync failed:", e));
+          MF.saveWarband(codeAtEdit, updated)
+            .then(() => { dirtyIds.current.delete(id); setSyncError(null); })
+            .catch(e => {
+              dirtyIds.current.delete(id);
+              setSyncError("Sync failed — changes may not be saved: " + e.message);
+              console.warn("Firestore sync failed:", e);
+            });
         }, 800);
         return prev.map(w => w.id === id ? updated : w);
       });
@@ -8218,6 +8243,12 @@ function App() {
             {state.theme === "dark" ? "Light Candles" : "Snuff Candles"}
           </button>
         </header>
+
+        {syncError && (
+          <div className="sync-error-bar" onClick={() => setSyncError(null)} title="Click to dismiss">
+            ⚠ {syncError}
+          </div>
+        )}
 
         {page.name === "home" && (
           <Home warbands={warbands}
