@@ -2522,6 +2522,157 @@ body::after {
   .hs-modal { width: 98vw; }
 }
 
+/* ── Campaign ─────────────────────────────────────────────────────── */
+
+/* Banner shown at top of Home when in a campaign */
+.campaign-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #14200a 0%, var(--bg-card) 100%);
+  border: 1px solid var(--rule-gold);
+  border-left: 3px solid var(--candle-dim);
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-bottom: 22px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.campaign-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.campaign-label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--ink-faint);
+}
+.campaign-name {
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--candle-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.campaign-code-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  padding: 3px 10px;
+  border: 1px solid var(--rule-gold);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--candle);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.campaign-code-btn:hover {
+  background: rgba(180, 140, 60, 0.10);
+  border-color: var(--candle-dim);
+}
+.campaign-code-icon {
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+
+/* "⚔ Campaign" button in the home-io-bar */
+.campaign-join-btn {
+  border-color: var(--rule-gold) !important;
+  color: var(--candle) !important;
+}
+.campaign-join-btn:hover {
+  background: rgba(180, 140, 60, 0.10) !important;
+  border-color: var(--candle-dim) !important;
+}
+
+/* ── Campaign Lobby modal ── */
+.lobby-tabs {
+  display: flex;
+  border: 1px solid var(--rule-bright);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 20px 0 18px;
+}
+.lobby-tab {
+  flex: 1;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  font-family: var(--display);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.lobby-tab:not(:last-child) { border-right: 1px solid var(--rule-bright); }
+.lobby-tab.active {
+  background: var(--bg-3);
+  color: var(--candle-bright);
+}
+.lobby-tab:hover:not(.active) {
+  background: var(--bg-2);
+  color: var(--ink-dim);
+}
+.lobby-error {
+  background: rgba(160, 50, 50, 0.15);
+  border: 1px solid rgba(180, 60, 60, 0.4);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #d88080;
+  font-size: 0.85rem;
+  margin-top: 12px;
+  font-style: italic;
+}
+
+/* ── Ownership badges on warband cards ── */
+.wb-owner-badge {
+  font-family: var(--mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+.wb-owner-badge.mine {
+  background: rgba(180, 140, 60, 0.14);
+  border: 1px solid rgba(180, 140, 60, 0.38);
+  color: var(--candle);
+}
+.wb-owner-badge.allied {
+  background: rgba(90, 90, 110, 0.14);
+  border: 1px solid rgba(90, 90, 110, 0.3);
+  color: var(--ink-faint);
+}
+
+/* Allied warband cards get a slightly muted treatment */
+.wb-card.wb-card-allied {
+  opacity: 0.88;
+}
+.wb-card.wb-card-allied:hover {
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .campaign-banner { flex-direction: column; align-items: flex-start; }
+  .campaign-name   { max-width: 100%; }
+}
+
 </style>
 </head>
 <body data-theme="dark">
@@ -2531,6 +2682,111 @@ body::after {
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
+<!-- Firebase compat SDK (loaded before our firebase.js) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* firebase.js — Mordheim Warband Tracker — campaign sync via Firestore */
+(function () {
+  const CFG = {
+    apiKey:            "AIzaSyBfGEo9kGCEHpIluKazrzlRfQ8x65Yh_jo",
+    authDomain:        "mordheim-tracker-ac042.firebaseapp.com",
+    projectId:         "mordheim-tracker-ac042",
+    storageBucket:     "mordheim-tracker-ac042.firebasestorage.app",
+    messagingSenderId: "1051977207265",
+    appId:             "1:1051977207265:web:cece0cc0af6234c27356a0",
+  };
+
+  let _db = null;
+  function getDb() {
+    if (_db) return _db;
+    try { firebase.app(); } catch (_) { firebase.initializeApp(CFG); }
+    _db = firebase.firestore();
+    return _db;
+  }
+
+  const SESSION_KEY = "mordheim_campaign_v1";
+  const CHARS       = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
+
+  function generateCode() {
+    let s = "";
+    for (let i = 0; i < 6; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
+    return s;
+  }
+
+  function loadSession() {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; }
+    catch (_) { return null; }
+  }
+  function saveSession(s) {
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch (_) {}
+  }
+  function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (_) {}
+  }
+
+  // Create a new campaign doc; returns the 6-char code
+  async function createCampaign(name) {
+    const code = generateCode();
+    await getDb().collection("campaigns").doc(code).set({
+      name,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    return code;
+  }
+
+  // Fetch campaign metadata — returns { code, name } or null if not found
+  async function getCampaign(code) {
+    const snap = await getDb()
+      .collection("campaigns")
+      .doc(code.toUpperCase())
+      .get();
+    if (!snap.exists) return null;
+    return { code: snap.id, name: snap.data().name };
+  }
+
+  // Subscribe to all warbands in a campaign — returns unsubscribe fn
+  function subscribeToCampaign(code, onUpdate, onErr) {
+    return getDb()
+      .collection("campaigns").doc(code)
+      .collection("warbands")
+      .onSnapshot(
+        snap => {
+          const wbs = [];
+          snap.forEach(d => wbs.push({ id: d.id, ...d.data() }));
+          onUpdate(wbs);
+        },
+        err => { if (onErr) onErr(err); }
+      );
+  }
+
+  // Upsert a warband document (id is stripped, used as doc key)
+  async function saveWarband(code, warband) {
+    const { id, ...data } = warband;
+    await getDb()
+      .collection("campaigns").doc(code)
+      .collection("warbands").doc(id)
+      .set(data, { merge: true });
+  }
+
+  // Delete a warband document
+  async function deleteWarband(code, wbId) {
+    await getDb()
+      .collection("campaigns").doc(code)
+      .collection("warbands").doc(wbId)
+      .delete();
+  }
+
+  window.MordheimFirebase = {
+    generateCode,
+    loadSession, saveSession, clearSession,
+    createCampaign, getCampaign, subscribeToCampaign,
+    saveWarband, deleteWarband,
+  };
+})();
+
+</script>
 <script>
 // Mordheim warband data extracted from the official rules PDF.
 // Profiles: [M, WS, BS, S, T, W, I, A, Ld]
@@ -7476,15 +7732,16 @@ Object.assign(window, { Roster, RecruitModal, EquipModal, WarriorCard, TreasureB
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
 const MM = window.MORDHEIM;
+const MF = window.MordheimFirebase; // null if Firebase SDK failed to load
 
-// ---------- storage ----------
+// ---------- offline storage ----------
 const STORAGE_KEY = "mordheim_v1";
 function loadState() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { warbands: [], theme: "dark" }; }
-  catch { return { warbands: [], theme: "dark" }; }
+  catch (_) { return { warbands: [], theme: "dark" }; }
 }
 function saveState(s) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (_) {}
 }
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -7543,7 +7800,7 @@ function importWarbands(onAdd) {
         }
         const imported = valid.map(wb => ({ ...wb, id: uid(), importedAt: Date.now() }));
         onAdd(imported);
-      } catch {
+      } catch (_) {
         alert('Could not read the file. Make sure it is a valid Mordheim JSON export.');
       }
     };
@@ -7617,18 +7874,209 @@ function Skull() {
   );
 }
 
+// ---------- Campaign Banner ----------
+function CampaignBanner({ session, onLeave }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(session.code).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {});
+    }
+  };
+  return (
+    <div className="campaign-banner">
+      <div className="campaign-info">
+        <span className="campaign-label">Campaign</span>
+        <span className="campaign-name">{session.name}</span>
+        <button className="campaign-code-btn" onClick={copy} title="Click to copy join code">
+          {session.code}
+          <span className="campaign-code-icon">{copied ? "✓" : "⊞"}</span>
+        </button>
+      </div>
+      <button className="btn ghost btn-sm" onClick={onLeave}>Leave</button>
+    </div>
+  );
+}
+
+// ---------- Campaign Lobby modal ----------
+function CampaignLobby({ onClose, onCreate, onJoin }) {
+  const [tab, setTab]   = useState("create");
+  const [name, setName] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const switchTab = (t) => { setTab(t); setError(""); };
+
+  const handleCreate = async () => {
+    if (!name.trim()) { setError("Please enter a campaign name."); return; }
+    setBusy(true); setError("");
+    try {
+      await onCreate(name.trim());
+      onClose();
+    } catch (e) {
+      setError("Could not create campaign. Check your connection and try again.");
+    } finally { setBusy(false); }
+  };
+
+  const handleJoin = async () => {
+    const c = code.trim().toUpperCase();
+    if (c.length !== 6) { setError("Please enter a 6-character campaign code."); return; }
+    setBusy(true); setError("");
+    try {
+      await onJoin(c);
+      onClose();
+    } catch (e) {
+      setError(e.message || "Campaign not found. Double-check the code.");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2>Campaign Roster</h2>
+        <p className="epigraph muted" style={{ textAlign: "center", marginBottom: 4 }}>
+          Share your warband roster with allies across Mordheim.
+        </p>
+        <div className="lobby-tabs">
+          <button className={`lobby-tab${tab === "create" ? " active" : ""}`} onClick={() => switchTab("create")}>
+            Create
+          </button>
+          <button className={`lobby-tab${tab === "join" ? " active" : ""}`} onClick={() => switchTab("join")}>
+            Join
+          </button>
+        </div>
+
+        {tab === "create" && (
+          <React.Fragment>
+            <div className="field">
+              <label>Campaign Name</label>
+              <input autoFocus value={name} onChange={e => setName(e.target.value)}
+                     placeholder="e.g. The Autumn Siege, Shattered Crown Campaign"
+                     onKeyDown={e => e.key === "Enter" && handleCreate()} />
+            </div>
+            <p style={{ fontSize: "0.83rem", color: "var(--ink-faint)", marginTop: 8, fontStyle: "italic" }}>
+              You'll receive a 6-letter code to share with allies.
+            </p>
+            {error && <div className="lobby-error">{error}</div>}
+            <div className="row" style={{ justifyContent: "flex-end", marginTop: 20 }}>
+              <button className="btn primary" onClick={handleCreate} disabled={busy}>
+                {busy ? "Creating…" : "Create Campaign"}
+              </button>
+            </div>
+          </React.Fragment>
+        )}
+
+        {tab === "join" && (
+          <React.Fragment>
+            <div className="field">
+              <label>Campaign Code</label>
+              <input autoFocus value={code}
+                     onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                     placeholder="XXXXXX" maxLength={6}
+                     style={{ fontFamily: "var(--mono)", fontSize: "1.3rem", letterSpacing: "0.2em" }}
+                     onKeyDown={e => e.key === "Enter" && handleJoin()} />
+            </div>
+            <p style={{ fontSize: "0.83rem", color: "var(--ink-faint)", marginTop: 8, fontStyle: "italic" }}>
+              Ask your campaign organiser for the 6-character code.
+            </p>
+            {error && <div className="lobby-error">{error}</div>}
+            <div className="row" style={{ justifyContent: "flex-end", marginTop: 20 }}>
+              <button className="btn primary" onClick={handleJoin} disabled={busy}>
+                {busy ? "Joining…" : "Join Campaign"}
+              </button>
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---------- app root ----------
 function App() {
-  const [state, setState] = useState(loadState);
-  const [page, setPage] = useState({ name: "home" }); // {name:'home'} | {name:'roster',id} | {name:'new'}
-  const [tweaks, setTweak] = window.useTweaks();
+  // ── offline state ──
+  const [state, setState] = useState(loadState); // { warbands: [], theme: "dark" }
+
+  // ── campaign session (persisted to localStorage via MF) ──
+  const [session, setSession] = useState(() => MF ? MF.loadSession() : null);
+  // { code: "ABC123", name: "Campaign Name", ownerTokens: { [wbId]: token } }
+
+  // ── live Firestore warbands ──
+  const [campaignWarbands, setCampaignWarbands] = useState(null); // null = not yet loaded
+  const [campaignLoading, setCampaignLoading]   = useState(false);
+  const [campaignError, setCampaignError]       = useState(null);
+
+  const [lobbyOpen, setLobbyOpen]   = useState(false);
+  const [page, setPage]             = useState({ name: "home" });
+  const [tweaks, setTweak]          = window.useTweaks();
   const [tweaksOpen, setTweaksOpen] = useState(false);
 
-  // Edit-mode protocol
+  // Refs for debounced Firestore sync
+  const dirtyIds   = useRef(new Set()); // warbands with unsaved local changes
+  const syncTimers = useRef({});        // setTimeout handles keyed by warband id
+
+  const inCampaign = !!session && !!MF;
+
+  // The canonical warband list shown to the user
+  const warbands = inCampaign ? (campaignWarbands || []) : state.warbands;
+
+  // Does the current user own this warband?
+  const isOwner = useCallback((wbId) => {
+    if (!inCampaign) return true;
+    return !!(session.ownerTokens && session.ownerTokens[wbId] !== undefined);
+  }, [inCampaign, session]);
+
+  // ── Subscribe to Firestore when campaign session exists ──
+  useEffect(() => {
+    if (!session || !MF) { setCampaignWarbands(null); return; }
+    setCampaignLoading(true);
+    setCampaignError(null);
+    const unsub = MF.subscribeToCampaign(
+      session.code,
+      wbs => {
+        setCampaignLoading(false);
+        setCampaignWarbands(prev =>
+          // Keep locally-edited version for any warband currently being synced
+          wbs.map(wb =>
+            dirtyIds.current.has(wb.id)
+              ? ((prev || []).find(p => p.id === wb.id) || wb)
+              : wb
+          )
+        );
+      },
+      err => {
+        setCampaignLoading(false);
+        setCampaignError("Lost connection to campaign. " + err.message);
+      }
+    );
+    return unsub;
+  }, [session ? session.code : null]);
+
+  // ── Persist offline state ──
+  useEffect(() => { saveState(state); }, [state]);
+
+  // ── Persist campaign session ──
+  useEffect(() => {
+    if (!MF) return;
+    if (session) MF.saveSession(session);
+    else MF.clearSession();
+  }, [session]);
+
+  // ── Theme ──
+  useEffect(() => {
+    document.documentElement.dataset.theme = state.theme;
+    document.body.dataset.theme = state.theme;
+  }, [state.theme]);
+
+  // ── Edit-mode protocol ──
   useEffect(() => {
     function onMsg(e) {
       if (!e.data) return;
-      if (e.data.type === "__activate_edit_mode") setTweaksOpen(true);
+      if (e.data.type === "__activate_edit_mode")   setTweaksOpen(true);
       if (e.data.type === "__deactivate_edit_mode") setTweaksOpen(false);
     }
     window.addEventListener("message", onMsg);
@@ -7641,27 +8089,118 @@ function App() {
     window.parent.postMessage({ type: "__edit_mode_dismissed" }, "*");
   };
 
-  useEffect(() => { saveState(state); }, [state]);
-  useEffect(() => { document.documentElement.dataset.theme = state.theme; document.body.dataset.theme = state.theme; }, [state.theme]);
-
   const toggleTheme = () => setState(s => ({ ...s, theme: s.theme === "dark" ? "light" : "dark" }));
 
+  // ── Warband CRUD ──
+
   const addWarband = (wb) => {
-    setState(s => ({ ...s, warbands: [...s.warbands, wb] }));
+    if (inCampaign) {
+      const token = uid();
+      const wbWithToken = { ...wb, ownerToken: token };
+      // Optimistic local add
+      setCampaignWarbands(prev => [...(prev || []), wbWithToken]);
+      dirtyIds.current.add(wb.id);
+      setSession(prev => ({
+        ...prev,
+        ownerTokens: { ...(prev.ownerTokens || {}), [wb.id]: token },
+      }));
+      // Async Firestore save
+      MF.saveWarband(session.code, wbWithToken)
+        .then(() => dirtyIds.current.delete(wb.id))
+        .catch(e => alert("Could not save warband to campaign: " + e.message));
+    } else {
+      setState(s => ({ ...s, warbands: [...s.warbands, wb] }));
+    }
     setPage({ name: "roster", id: wb.id });
   };
+
   const addImportedWarbands = (wbs) => {
-    setState(s => ({ ...s, warbands: [...s.warbands, ...wbs] }));
-    if (wbs.length === 1) setPage({ name: "roster", id: wbs[0].id });
+    if (inCampaign) {
+      const newTokens = {};
+      const wbsWithTokens = wbs.map(wb => {
+        const token = uid();
+        newTokens[wb.id] = token;
+        return { ...wb, ownerToken: token };
+      });
+      setCampaignWarbands(prev => [...(prev || []), ...wbsWithTokens]);
+      setSession(prev => ({
+        ...prev,
+        ownerTokens: { ...(prev.ownerTokens || {}), ...newTokens },
+      }));
+      wbsWithTokens.forEach(wb => {
+        dirtyIds.current.add(wb.id);
+        MF.saveWarband(session.code, wb)
+          .then(() => dirtyIds.current.delete(wb.id))
+          .catch(e => console.warn("Import sync failed:", e));
+      });
+      if (wbs.length === 1) setPage({ name: "roster", id: wbs[0].id });
+    } else {
+      setState(s => ({ ...s, warbands: [...s.warbands, ...wbs] }));
+      if (wbs.length === 1) setPage({ name: "roster", id: wbs[0].id });
+    }
   };
+
   const deleteWarband = (id) => {
     if (!confirm("Disband this warband? This cannot be undone.")) return;
-    setState(s => ({ ...s, warbands: s.warbands.filter(w => w.id !== id) }));
+    if (inCampaign) {
+      // Optimistic removal
+      setCampaignWarbands(prev => prev ? prev.filter(w => w.id !== id) : prev);
+      setSession(prev => {
+        const tokens = { ...(prev.ownerTokens || {}) };
+        delete tokens[id];
+        return { ...prev, ownerTokens: tokens };
+      });
+      MF.deleteWarband(session.code, id)
+        .catch(e => alert("Could not delete warband: " + e.message));
+    } else {
+      setState(s => ({ ...s, warbands: s.warbands.filter(w => w.id !== id) }));
+    }
+    if (page.name === "roster" && page.id === id) setPage({ name: "home" });
   };
+
   const updateWarband = (id, updater) => {
-    setState(s => ({ ...s, warbands: s.warbands.map(w => w.id === id ? updater(w) : w) }));
+    if (inCampaign) {
+      setCampaignWarbands(prev => {
+        if (!prev) return prev;
+        const wb = prev.find(w => w.id === id);
+        if (!wb) return prev;
+        const updated = updater(wb);
+        // Mark dirty and schedule debounced sync
+        dirtyIds.current.add(id);
+        clearTimeout(syncTimers.current[id]);
+        syncTimers.current[id] = setTimeout(() => {
+          MF.saveWarband(session.code, updated)
+            .then(() => dirtyIds.current.delete(id))
+            .catch(e => console.warn("Firestore sync failed:", e));
+        }, 800);
+        return prev.map(w => w.id === id ? updated : w);
+      });
+    } else {
+      setState(s => ({ ...s, warbands: s.warbands.map(w => w.id === id ? updater(w) : w) }));
+    }
   };
-  const current = page.name === "roster" ? state.warbands.find(w => w.id === page.id) : null;
+
+  // ── Campaign management ──
+
+  const handleCreateCampaign = async (name) => {
+    const code = await MF.createCampaign(name);
+    setSession({ code, name, ownerTokens: {} });
+  };
+
+  const handleJoinCampaign = async (code) => {
+    const campaign = await MF.getCampaign(code);
+    if (!campaign) throw new Error("Campaign not found. Check the code and try again.");
+    setSession({ code: campaign.code, name: campaign.name, ownerTokens: {} });
+  };
+
+  const handleLeaveCampaign = () => {
+    if (!confirm("Leave this campaign? You can rejoin later with the same code. Your warbands will remain visible to the group.")) return;
+    setSession(null);
+    setCampaignWarbands(null);
+    setPage({ name: "home" });
+  };
+
+  const current = page.name === "roster" ? warbands.find(w => w.id === page.id) : null;
 
   return (
     <React.Fragment>
@@ -7681,13 +8220,21 @@ function App() {
         </header>
 
         {page.name === "home" && (
-          <Home warbands={state.warbands}
+          <Home warbands={warbands}
+                session={session}
+                inCampaign={inCampaign}
+                campaignLoading={campaignLoading}
+                campaignError={campaignError}
+                isOwner={isOwner}
+                hasCampaignFeature={!!MF}
                 onOpen={id => setPage({ name: "roster", id })}
                 onNew={() => setPage({ name: "new" })}
                 onDelete={deleteWarband}
                 onExport={exportWarband}
-                onExportAll={() => exportAllWarbands(state.warbands)}
-                onImport={() => importWarbands(addImportedWarbands)} />
+                onExportAll={() => exportAllWarbands(warbands)}
+                onImport={() => importWarbands(addImportedWarbands)}
+                onOpenLobby={() => setLobbyOpen(true)}
+                onLeaveCampaign={handleLeaveCampaign} />
         )}
         {page.name === "new" && (
           <NewWarband onCancel={() => setPage({ name: "home" })} onCreate={addWarband} />
@@ -7699,20 +8246,40 @@ function App() {
                   onExport={() => exportWarband(current)} />
         )}
       </div>
+
+      {lobbyOpen && MF && (
+        <CampaignLobby
+          onClose={() => setLobbyOpen(false)}
+          onCreate={handleCreateCampaign}
+          onJoin={handleJoinCampaign}
+        />
+      )}
+
       <window.TweaksPanel open={tweaksOpen} onClose={closeTweaks} t={tweaks} setTweak={setTweak} />
     </React.Fragment>
   );
 }
 
 // ---------- home ----------
-function Home({ warbands, onOpen, onNew, onDelete, onExport, onExportAll, onImport }) {
+function Home({ warbands, session, inCampaign, campaignLoading, campaignError, isOwner,
+                hasCampaignFeature, onOpen, onNew, onDelete, onExport, onExportAll,
+                onImport, onOpenLobby, onLeaveCampaign }) {
   return (
     <React.Fragment>
+      {inCampaign && session && (
+        <CampaignBanner session={session} onLeave={onLeaveCampaign} />
+      )}
       <div className="page-heading">
         <h1>The Warbands</h1>
         <div className="home-io-bar">
+          {hasCampaignFeature && !inCampaign && (
+            <button className="btn ghost btn-sm campaign-join-btn" onClick={onOpenLobby}
+                    title="Create or join a shared campaign with allies">
+              ⚔ Campaign
+            </button>
+          )}
           <button className="btn ghost btn-sm" onClick={onImport} title="Load warbands from a .mordheim.json file">↑ Import</button>
-          {warbands.length > 0 && (
+          {warbands.length > 0 && !inCampaign && (
             <button className="btn ghost btn-sm" onClick={onExportAll} title="Save all warbands to a single JSON file">↓ Export All</button>
           )}
         </div>
@@ -7721,19 +8288,35 @@ function Home({ warbands, onOpen, onNew, onDelete, onExport, onExportAll, onImpo
         </div>
         <p className="epigraph">"The night belongs to those bold enough to claim it."</p>
       </div>
-      {warbands.length === 0 ? (
+
+      {campaignError && (
+        <div className="lobby-error" style={{ marginBottom: 16 }}>{campaignError}</div>
+      )}
+
+      {campaignLoading && !warbands.length ? (
+        <div className="empty">
+          <div className="big" style={{ color: "var(--ink-dim)" }}>Summoning the warbands…</div>
+        </div>
+      ) : warbands.length === 0 ? (
         <div className="empty">
           <div className="big">No warbands stir in the ruins</div>
-          <p>Light a lantern, draw your blade, and recruit the desperate few who would dare the dead city.</p>
+          <p>{inCampaign
+            ? "No warbands have yet mustered for this campaign. Be the first to light a lantern."
+            : "Light a lantern, draw your blade, and recruit the desperate few who would dare the dead city."}</p>
           <div style={{ marginTop: 30, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
             <button className="btn primary" onClick={onNew}>+ Muster a Warband</button>
-            <button className="btn ghost" onClick={onImport}>↑ Import Warband</button>
+            {!inCampaign && <button className="btn ghost" onClick={onImport}>↑ Import Warband</button>}
           </div>
         </div>
       ) : (
         <div className="warband-grid">
           {warbands.map((w, i) => (
-            <WarbandCard key={w.id} wb={w} idx={i} onOpen={() => onOpen(w.id)} onDelete={() => onDelete(w.id)} onExport={() => onExport(w)} />
+            <WarbandCard key={w.id} wb={w} idx={i}
+              inCampaign={inCampaign}
+              mine={isOwner(w.id)}
+              onOpen={() => onOpen(w.id)}
+              onDelete={() => onDelete(w.id)}
+              onExport={() => onExport(w)} />
           ))}
           <button className="wb-card add" onClick={onNew}>
             <div className="plus">+</div>
@@ -7745,16 +8328,22 @@ function Home({ warbands, onOpen, onNew, onDelete, onExport, onExportAll, onImpo
   );
 }
 
-function WarbandCard({ wb, idx, onOpen, onDelete, onExport }) {
+function WarbandCard({ wb, idx, inCampaign, mine, onOpen, onDelete, onExport }) {
   const def = MM.WARBANDS[wb.faction];
   const warriorCount = wb.warriors.length;
-  const heroCount = wb.warriors.filter(x => x.role === "Hero").length;
   return (
-    <div className="wb-card" onClick={onOpen} style={{ animationDelay: (idx * 60) + "ms" }}>
+    <div className={`wb-card${inCampaign && !mine ? " wb-card-allied" : ""}`}
+         onClick={onOpen}
+         style={{ animationDelay: (idx * 60) + "ms" }}>
       <span className="wb-card-corner tl"></span>
       <span className="wb-card-corner tr"></span>
       <span className="wb-card-corner bl"></span>
       <span className="wb-card-corner br"></span>
+      {inCampaign && (
+        <div className={`wb-owner-badge ${mine ? "mine" : "allied"}`}>
+          {mine ? "⚔ Yours" : "👁 Allied"}
+        </div>
+      )}
       <div className="group-tag">{def.group}</div>
       <h3>{wb.name}</h3>
       <div className="wb-leader">{def.name} · led by <em>{wb.warriors.find(x => x.role === "Hero")?.name || "(unnamed)"}</em></div>
@@ -7765,7 +8354,9 @@ function WarbandCard({ wb, idx, onOpen, onDelete, onExport }) {
       </div>
       <div className="wb-actions">
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <button className="wb-delete" onClick={e => { e.stopPropagation(); onDelete(); }}>Disband</button>
+          {mine && (
+            <button className="wb-delete" onClick={e => { e.stopPropagation(); onDelete(); }}>Disband</button>
+          )}
           <button className="wb-export" onClick={e => { e.stopPropagation(); onExport(); }} title="Save this warband to a JSON file">Export</button>
         </div>
         <span className="open-cue">Enter Roster <span>→</span></span>
