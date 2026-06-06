@@ -2673,6 +2673,28 @@ body::after {
   .campaign-name   { max-width: 100%; }
 }
 
+/* ── Lad's Got Talent ─────────────────────────────────────────────── */
+.lads-panel {
+  background: rgba(180, 140, 60, 0.07);
+  border: 1px solid var(--rule-gold);
+  border-left: 3px solid var(--candle-dim);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin: 14px 0 4px;
+  font-size: 0.9rem;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
+.lads-panel p { margin-bottom: 6px; }
+.lads-panel ul {
+  margin: 6px 0 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lads-panel strong { color: var(--candle-bright); font-weight: 600; }
+
 /* Sync error bar — appears below header if a Firestore write fails */
 .sync-error-bar {
   background: rgba(160, 50, 50, 0.18);
@@ -4907,6 +4929,8 @@ function Roster({ warband, onBack, update, onExport }) {
   const [equipFor, setEquipFor] = useStateR(null); // warrior id
   const [advancingHero, setAdvancingHero] = useStateR(null);   // hero warrior id
   const [advancingGroup, setAdvancingGroup] = useStateR(null); // henchman groupId
+  const [ladsTalentHeroId, setLadsTalentHeroId]       = useStateR(null); // newly promoted hero waiting to pick skills
+  const [ladsTalentSkillsLeft, setLadsTalentSkillsLeft] = useStateR(0);  // 2 → 1 → 0
   const [spellbookFor, setSpellbookFor] = useStateR(null);    // warrior id
   const [hireMoreFor, setHireMoreFor] = useStateR(null);      // groupId
   const [hiredSwordsOpen, setHiredSwordsOpen] = useStateR(false);
@@ -5311,6 +5335,10 @@ function Roster({ warband, onBack, update, onExport }) {
   };
 
   const applyGroupAdvancement = (groupId, adv) => {
+    if (adv.type === "ladsGotTalent") {
+      applyLadsGotTalent(groupId);
+      return; // remaining group members keep their advance — handled separately
+    }
     update(w => ({
       ...w,
       warriors: w.warriors.map(x => {
@@ -5323,6 +5351,71 @@ function Roster({ warband, onBack, update, onExport }) {
       }),
     }));
     setAdvancingGroup(null);
+  };
+
+  // ── Lad's Got Talent ─────────────────────────────────────────────
+  // Separates one henchman from the group and promotes them to a Hero.
+  // The remaining members keep their pending advance (advancesUsed NOT incremented).
+  const applyLadsGotTalent = (groupId) => {
+    const members = warband.warriors.filter(x => (x.groupId || x.id) === groupId);
+    if (!members.length) return;
+    const tmpl = members[0]; // the warrior being elevated
+    const newHeroId = uid();
+    const newHero = {
+      id:          newHeroId,
+      unitId:      tmpl.unitId,
+      role:        "Hero",
+      title:       tmpl.title,
+      name:        tmpl.name,
+      cost:        tmpl.cost,
+      xp:          tmpl.xp,
+      advancesUsed: 0,         // reset: starts fresh on the hero advance track
+      skills:      [],         // will be filled by the 2-skill pick below
+      knownSpells: tmpl.knownSpells ? [...tmpl.knownSpells] : [],
+      profile:     [...tmpl.profile],                          // keeps all stat gains
+      gear:        (tmpl.gear      || []).map(g => ({ ...g })),
+      mutations:   (tmpl.mutations || []).map(m => ({ ...m })),
+      list:        tmpl.list,
+      rules:       [...(tmpl.rules || [])],
+      canMutate:   !!tmpl.canMutate,
+      isLeader:    false,
+      injuries:    [...(tmpl.injuries || [])],
+      notes:       tmpl.notes || "",
+      isLadsGotTalent: true,   // marker; cleared once skills are chosen
+    };
+    // Remove the template warrior, append the new hero.
+    // Remaining group members are untouched — their advancesUsed stays as-is.
+    update(w => ({
+      ...w,
+      warriors: [...w.warriors.filter(x => x.id !== tmpl.id), newHero],
+    }));
+    setAdvancingGroup(null);
+    setLadsTalentHeroId(newHeroId);
+    setLadsTalentSkillsLeft(2);
+  };
+
+  // Called once per skill pick (twice total) from LadsTalentSkillModal
+  const applyLadsHeroSkill = (heroId, skillKey) => {
+    update(w => ({
+      ...w,
+      warriors: w.warriors.map(x =>
+        x.id === heroId
+          ? { ...x, skills: [...(x.skills || []), skillKey], advancesUsed: (x.advancesUsed || 0) + 1 }
+          : x
+      ),
+    }));
+    const left = ladsTalentSkillsLeft - 1;
+    setLadsTalentSkillsLeft(left);
+    if (left <= 0) {
+      // Clear the marker once all skills are chosen
+      update(w => ({
+        ...w,
+        warriors: w.warriors.map(x =>
+          x.id === heroId ? { ...x, isLadsGotTalent: false } : x
+        ),
+      }));
+      setLadsTalentHeroId(null);
+    }
   };
 
   // Leader logic — fall back to unitDef.min===1 for warbands without explicit isLeader set
@@ -5526,6 +5619,17 @@ function Roster({ warband, onBack, update, onExport }) {
             groupSize={members.length}
             onApply={(adv) => applyGroupAdvancement(advancingGroup, adv)}
             onClose={() => setAdvancingGroup(null)} />
+        ) : null;
+      })()}
+      {ladsTalentHeroId && (() => {
+        const hero = warband.warriors.find(x => x.id === ladsTalentHeroId);
+        return hero ? (
+          <LadsTalentSkillModal
+            warrior={hero}
+            warband={warband}
+            skillsLeft={ladsTalentSkillsLeft}
+            onApply={(sk) => applyLadsHeroSkill(ladsTalentHeroId, sk)}
+            onClose={() => { setLadsTalentHeroId(null); setLadsTalentSkillsLeft(0); }} />
         ) : null;
       })()}
       {spellbookFor && (() => {
@@ -6515,7 +6619,7 @@ function XpBar({ warrior, onAdjust, onAdvance }) {
 
 // ── AdvancementModal ──────────────────────────────────────────────
 function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
-  const [mode, setMode] = useStateR(isGroup ? "stat" : null); // 'skill' | 'stat'
+  const [mode, setMode] = useStateR(null); // null | 'skill' | 'stat' | 'lads'
   const [selectedSkill, setSelectedSkill] = useStateR(null);
   const [selectedStat, setSelectedStat] = useStateR(null);
   const [skillDetail, setSkillDetail] = useStateR(null);
@@ -6539,13 +6643,15 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
 
   const statOptions = isHero ? MR.HERO_STAT_ADVANCES : MR.HENCH_STAT_ADVANCES;
 
-  const canConfirm = (mode === "skill" && selectedSkill) || (mode === "stat" && selectedStat !== null);
+  const canConfirm = (mode === "skill" && selectedSkill) || (mode === "stat" && selectedStat !== null) || mode === "lads";
 
   const confirm = () => {
     if (mode === "skill" && selectedSkill) {
       onApply({ type: "skill", key: selectedSkill });
     } else if (mode === "stat" && selectedStat !== null) {
       onApply({ type: "stat", idx: selectedStat });
+    } else if (mode === "lads") {
+      onApply({ type: "ladsGotTalent" });
     }
   };
 
@@ -6571,7 +6677,7 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
           <span style={{color:"var(--blood-bright)"}}>{pending} advance{pending !== 1 ? "s" : ""} ready</span>
         </p>
 
-        {/* Mode selector (heroes only; henchmen go straight to stat) */}
+        {/* Mode selector — heroes get Skill / Stat; henchman groups get Stat / Lad's Got Talent */}
         {isHero && !isGroup && (
           <div className="adv-mode-btns">
             <button
@@ -6588,6 +6694,41 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
               <span className="adv-mode-label">Improve Stat</span>
               <span className="adv-mode-sub">Increase a characteristic by +1</span>
             </button>
+          </div>
+        )}
+        {isGroup && (
+          <div className="adv-mode-btns">
+            <button
+              className={"adv-mode-btn" + (mode === "stat" ? " active" : "")}
+              onClick={() => { setMode("stat"); setSelectedStat(null); }}>
+              <span className="adv-mode-icon">↑</span>
+              <span className="adv-mode-label">Improve Stat</span>
+              <span className="adv-mode-sub">+1 characteristic for all members</span>
+            </button>
+            <button
+              className={"adv-mode-btn" + (mode === "lads" ? " active" : "")}
+              onClick={() => setMode("lads")}>
+              <span className="adv-mode-icon">★</span>
+              <span className="adv-mode-label">Lad's Got Talent</span>
+              <span className="adv-mode-sub">Elevate one warrior to Hero</span>
+            </button>
+          </div>
+        )}
+
+        {/* Lad's Got Talent info panel */}
+        {mode === "lads" && (
+          <div className="lads-panel">
+            <p>One warrior separates from the group and is elevated to <strong>Hero</strong> status.</p>
+            <ul>
+              <li>Keeps all characteristic increases and equipment.</li>
+              <li>Immediately chooses <strong>2 skills</strong> from your warband's hero lists.</li>
+              <li>
+                {groupSize > 1
+                  ? <React.Fragment>The remaining <strong>{groupSize - 1}</strong> warrior{groupSize - 1 !== 1 ? "s" : ""} still advance — they roll again.</React.Fragment>
+                  : <React.Fragment>This is the <strong>last member</strong> — the group will be disbanded.</React.Fragment>
+                }
+              </li>
+            </ul>
           </div>
         )}
 
@@ -6648,7 +6789,96 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
               ? `Take Skill — ${MR.SKILLS[selectedSkill]?.name}`
               : mode === "stat" && selectedStat !== null
               ? `+1 ${MR.STAT_LABELS[selectedStat]} — Confirm`
+              : mode === "lads"
+              ? "Elevate to Hero — Confirm"
               : "Choose Advancement"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── LadsTalentSkillModal ──────────────────────────────────────────
+// Shown immediately after a henchman is promoted via Lad's Got Talent.
+// The new hero picks 2 skills from the warband's hero skill lists.
+function LadsTalentSkillModal({ warrior, warband, skillsLeft, onApply, onClose }) {
+  const [selectedSkill, setSelectedSkill] = useStateR(null);
+  const [skillDetail, setSkillDetail]     = useStateR(null);
+
+  // Collect all skill categories available to any existing hero in the warband.
+  // Also add the warrior's own unitId categories if they're in the table.
+  const categories = useMemoR(() => {
+    const cats = new Set();
+    warband.warriors.forEach(w => {
+      const wCats = MR.HERO_SKILL_CATEGORIES[w.unitId];
+      if (wCats) wCats.forEach(c => cats.add(c));
+    });
+    if (cats.size === 0) ["Combat", "Speed"].forEach(c => cats.add(c));
+    return [...cats];
+  }, [warband.warriors]);
+
+  const skillsByCategory = useMemoR(() => {
+    const byCat = {};
+    categories.forEach(cat => { byCat[cat] = []; });
+    Object.entries(MR.SKILLS).forEach(([k, s]) => {
+      if (categories.includes(s.category) && !(warrior.skills || []).includes(k)) {
+        byCat[s.category].push({ key: k, ...s });
+      }
+    });
+    return byCat;
+  }, [warrior.skills, categories]);
+
+  const handleConfirm = () => {
+    if (!selectedSkill) return;
+    onApply(selectedSkill);
+    setSelectedSkill(null);
+    setSkillDetail(null);
+  };
+
+  const skillsChosen = 2 - skillsLeft;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal advance-modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2>Lad's Got Talent</h2>
+        <p className="epigraph muted" style={{ textAlign: "center" }}>
+          {warrior.name} joins the heroes
+          <span style={{ color: "var(--ink-faint)", margin: "0 6px" }}>·</span>
+          <span style={{ color: "var(--candle-bright)" }}>Choose skill {skillsChosen + 1} of 2</span>
+        </p>
+
+        <div className="adv-skill-section">
+          {Object.entries(skillsByCategory).map(([cat, skills]) =>
+            skills.length === 0 ? null : (
+              <div key={cat} className="skill-category">
+                <div className="skill-cat-title">{cat}</div>
+                <div className="skill-grid">
+                  {skills.map(s => (
+                    <button
+                      key={s.key}
+                      className={"skill-tile" + (selectedSkill === s.key ? " selected" : "")}
+                      onClick={() => { setSelectedSkill(s.key); setSkillDetail(s); }}>
+                      <div className="skill-tile-name">{s.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+          {skillDetail && (
+            <div className="skill-detail">
+              <div className="skill-detail-name">✦ {skillDetail.name}</div>
+              <div className="skill-detail-desc">{skillDetail.desc}</div>
+            </div>
+          )}
+        </div>
+
+        <div className="detail-footer" style={{ marginTop: 28 }}>
+          <button className="btn ghost" onClick={onClose}>Skip Remaining</button>
+          <button className="btn primary" disabled={!selectedSkill} onClick={handleConfirm}>
+            {selectedSkill ? `Take Skill — ${MR.SKILLS[selectedSkill]?.name}` : "Choose a Skill"}
           </button>
         </div>
       </div>
@@ -7743,7 +7973,7 @@ function printRoster(warband, def) {
   setTimeout(() => { try { win.print(); } catch(err) {} }, 500);
 }
 
-Object.assign(window, { Roster, RecruitModal, EquipModal, WarriorCard, TreasureBar, Section, EqTile, UnitTile, Tip, XpBar, AdvancementModal, SpellbookModal, HireMoreModal, HiredSwordsModal, DramatisPersonaeModal, NotesModal, StockpileModal, GiveStockpileDialog, TradingPostModal, AssignItemModal, TpDetailDialog });
+Object.assign(window, { Roster, RecruitModal, EquipModal, WarriorCard, TreasureBar, Section, EqTile, UnitTile, Tip, XpBar, AdvancementModal, LadsTalentSkillModal, SpellbookModal, HireMoreModal, HiredSwordsModal, DramatisPersonaeModal, NotesModal, StockpileModal, GiveStockpileDialog, TradingPostModal, AssignItemModal, TpDetailDialog });
 
 </script>
 <script type="text/babel">
