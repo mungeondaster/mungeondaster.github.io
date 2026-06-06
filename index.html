@@ -2673,6 +2673,68 @@ body::after {
   .campaign-name   { max-width: 100%; }
 }
 
+/* ── Sigmar Mode ──────────────────────────────────────────────────── */
+
+/* Make the divider skull clickable without a cursor hint */
+.sigmar-icon-wrap {
+  cursor: default;
+  user-select: none;
+}
+
+/* Warhammer glyph — pulsing golden glow */
+.sigmar-hammer {
+  width: 24px; height: 24px;
+  animation: sigmar-pulse 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px var(--candle-dim));
+}
+@keyframes sigmar-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--candle-dim)); }
+  50%       { filter: drop-shadow(0 0 12px var(--candle-bright)) drop-shadow(0 0 24px rgba(212,160,74,0.5)); }
+}
+
+/* "Sigmar Mode Activated" text beneath the divider */
+.sigmar-mode-msg {
+  font-family: var(--display);
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--candle);
+  text-align: center;
+  margin-top: -8px;
+  margin-bottom: 6px;
+  animation: sigmar-appear 0.5s ease forwards;
+}
+@keyframes sigmar-appear {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Campaign banner in Sigmar Mode gets a gold border */
+.campaign-banner.sigmar-mode-banner {
+  border-color: var(--candle);
+  border-left-color: var(--candle-bright);
+  background: linear-gradient(135deg, #1e1800 0%, var(--bg-card) 100%);
+}
+.sigmar-banner-tag {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--candle-bright);
+  background: rgba(180,140,60,0.18);
+  border: 1px solid rgba(180,140,60,0.45);
+  border-radius: 3px;
+  padding: 1px 7px;
+}
+
+/* Admin badge on warband cards */
+.wb-owner-badge.sigmar-admin {
+  background: rgba(180, 140, 60, 0.18);
+  border: 1px solid rgba(180, 140, 60, 0.5);
+  color: var(--candle-bright);
+  animation: sigmar-pulse 2.4s ease-in-out infinite;
+}
+
 /* ── Lad's Got Talent ─────────────────────────────────────────────── */
 .lads-panel {
   background: rgba(180, 140, 60, 0.07);
@@ -8122,9 +8184,27 @@ function Skull() {
     </svg>
   );
 }
+// Ghal Maraz — Sigmar's two-headed warhammer
+function Warhammer() {
+  return (
+    <svg className="sigmar-hammer" viewBox="0 0 24 24" fill="none">
+      {/* Left head */}
+      <rect x="1"  y="5" width="6" height="8" rx="1.2" fill="var(--candle)"/>
+      {/* Right head */}
+      <rect x="17" y="5" width="6" height="8" rx="1.2" fill="var(--candle)"/>
+      {/* Crossbar shaft */}
+      <rect x="7"  y="7.5" width="10" height="3" rx="0.6" fill="var(--candle-dim)"/>
+      {/* Handle */}
+      <rect x="10.5" y="10.5" width="3" height="10" rx="1" fill="var(--candle-dim)"/>
+      {/* Binding wrap */}
+      <rect x="10.5" y="13" width="3" height="1.2" rx="0.4" fill="var(--candle)" opacity="0.5"/>
+      <rect x="10.5" y="16" width="3" height="1.2" rx="0.4" fill="var(--candle)" opacity="0.5"/>
+    </svg>
+  );
+}
 
 // ---------- Campaign Banner ----------
-function CampaignBanner({ session, onLeave }) {
+function CampaignBanner({ session, sigmarMode, onLeave }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
     if (navigator.clipboard) {
@@ -8135,7 +8215,7 @@ function CampaignBanner({ session, onLeave }) {
     }
   };
   return (
-    <div className="campaign-banner">
+    <div className={`campaign-banner${sigmarMode ? " sigmar-mode-banner" : ""}`}>
       <div className="campaign-info">
         <span className="campaign-label">Campaign</span>
         <span className="campaign-name">{session.name}</span>
@@ -8143,6 +8223,7 @@ function CampaignBanner({ session, onLeave }) {
           {session.code}
           <span className="campaign-code-icon">{copied ? "✓" : "⊞"}</span>
         </button>
+        {sigmarMode && <span className="sigmar-banner-tag">⚔ Sigmar Mode</span>}
       </div>
       <button className="btn ghost btn-sm" onClick={onLeave}>Leave</button>
     </div>
@@ -8261,6 +8342,7 @@ function App() {
 
   const [lobbyOpen, setLobbyOpen]   = useState(false);
   const [syncError, setSyncError]   = useState(null); // non-null = last sync error message
+  const [sigmarMode, setSigmarMode] = useState(false); // secret admin mode
   const [page, setPage]             = useState({ name: "home" });
   const [tweaks, setTweak]          = window.useTweaks();
   const [tweaksOpen, setTweaksOpen] = useState(false);
@@ -8274,11 +8356,12 @@ function App() {
   // The canonical warband list shown to the user
   const warbands = inCampaign ? (campaignWarbands || []) : state.warbands;
 
-  // Does the current user own this warband?
+  // Does the current user own this warband? Sigmar Mode grants ownership of everything.
   const isOwner = useCallback((wbId) => {
+    if (sigmarMode) return true;
     if (!inCampaign) return true;
     return !!(session.ownerTokens && session.ownerTokens[wbId] !== undefined);
-  }, [inCampaign, session]);
+  }, [sigmarMode, inCampaign, session]);
 
   // ── Subscribe to Firestore when campaign session exists ──
   useEffect(() => {
@@ -8488,6 +8571,9 @@ function App() {
                 campaignError={campaignError}
                 isOwner={isOwner}
                 hasCampaignFeature={!!MF}
+                sigmarMode={sigmarMode}
+                onActivateSigmar={() => setSigmarMode(true)}
+                onDeactivateSigmar={() => setSigmarMode(false)}
                 onOpen={id => setPage({ name: "roster", id })}
                 onNew={() => setPage({ name: "new" })}
                 onDelete={deleteWarband}
@@ -8523,12 +8609,29 @@ function App() {
 
 // ---------- home ----------
 function Home({ warbands, session, inCampaign, campaignLoading, campaignError, isOwner,
-                hasCampaignFeature, onOpen, onNew, onDelete, onExport, onExportAll,
+                hasCampaignFeature, sigmarMode, onActivateSigmar, onDeactivateSigmar,
+                onOpen, onNew, onDelete, onExport, onExportAll,
                 onImport, onOpenLobby, onLeaveCampaign }) {
+  const [iconClicks, setIconClicks] = useState(0);
+  const clickTimer = useRef(null);
+
+  const handleIconClick = () => {
+    clearTimeout(clickTimer.current);
+    const next = iconClicks + 1;
+    if (next >= 5) {
+      sigmarMode ? onDeactivateSigmar() : onActivateSigmar();
+      setIconClicks(0);
+    } else {
+      setIconClicks(next);
+      // Reset click count if no further clicks within 3 seconds
+      clickTimer.current = setTimeout(() => setIconClicks(0), 3000);
+    }
+  };
+
   return (
     <React.Fragment>
       {inCampaign && session && (
-        <CampaignBanner session={session} onLeave={onLeaveCampaign} />
+        <CampaignBanner session={session} sigmarMode={sigmarMode} onLeave={onLeaveCampaign} />
       )}
       <div className="page-heading">
         <h1>The Warbands</h1>
@@ -8544,9 +8647,15 @@ function Home({ warbands, session, inCampaign, campaignLoading, campaignError, i
             <button className="btn ghost btn-sm" onClick={onExportAll} title="Save all warbands to a single JSON file">↓ Export All</button>
           )}
         </div>
-        <div className="divider">
-          <svg viewBox="0 0 24 24"><Skull /></svg>
+        <div className="divider sigmar-icon-wrap" onClick={handleIconClick} title="">
+          {sigmarMode
+            ? <Warhammer />
+            : <svg viewBox="0 0 24 24"><Skull /></svg>
+          }
         </div>
+        {sigmarMode && (
+          <div className="sigmar-mode-msg">⚔ Sigmar Mode Activated ⚔</div>
+        )}
         <p className="epigraph">"The night belongs to those bold enough to claim it."</p>
       </div>
 
@@ -8575,6 +8684,7 @@ function Home({ warbands, session, inCampaign, campaignLoading, campaignError, i
             <WarbandCard key={w.id} wb={w} idx={i}
               inCampaign={inCampaign}
               mine={isOwner(w.id)}
+              sigmarMode={sigmarMode}
               onOpen={() => onOpen(w.id)}
               onDelete={() => onDelete(w.id)}
               onExport={() => onExport(w)} />
@@ -8589,7 +8699,7 @@ function Home({ warbands, session, inCampaign, campaignLoading, campaignError, i
   );
 }
 
-function WarbandCard({ wb, idx, inCampaign, mine, onOpen, onDelete, onExport }) {
+function WarbandCard({ wb, idx, inCampaign, mine, sigmarMode, onOpen, onDelete, onExport }) {
   const def = MM.WARBANDS[wb.faction];
   const warriorCount = wb.warriors.length;
   return (
@@ -8601,8 +8711,8 @@ function WarbandCard({ wb, idx, inCampaign, mine, onOpen, onDelete, onExport }) 
       <span className="wb-card-corner bl"></span>
       <span className="wb-card-corner br"></span>
       {inCampaign && (
-        <div className={`wb-owner-badge ${mine ? "mine" : "allied"}`}>
-          {mine ? "⚔ Yours" : "👁 Allied"}
+        <div className={`wb-owner-badge ${mine && !sigmarMode ? "mine" : mine ? "mine" : sigmarMode ? "sigmar-admin" : "allied"}`}>
+          {mine ? "⚔ Yours" : sigmarMode ? "⚔ Admin" : "👁 Allied"}
         </div>
       )}
       <div className="group-tag">{def.group}</div>
