@@ -3692,7 +3692,7 @@ const SPELLS = {
   dreadOfAramar:    { name:"Dread of Aramar",           school:"Necromancy",       castRoll:7,  range:'12"',
     desc:"One model within 12\" must pass a Leadership test or flee 2D6\" directly away from the caster. The model must repeat this test at the start of each of its movement phases until it passes. Has no effect on Undead or models immune to Fear." },
   callOfVanhel:     { name:"Call of Vanhel",            school:"Necromancy",       castRoll:6,  range:'6"',
-    desc:"One friendly Zombie or Dire Wolf within 6\" may immediately move up to its full Movement distance. If it contacts an enemy, normal close combat is fought at once." },
+    desc:"One friendly Zombie or Dire Wolf within 6\" may immediately move up to its full Movement distance. If it comes into base contact with an enemy, it counts as charging." },
 
   // === Chaos Rituals (Magister — Cult of the Possessed) ===
   visionOfTorment:  { name:"Vision of Torment",         school:"Chaos Rituals",    castRoll:10, range:'6"',
@@ -3796,7 +3796,7 @@ const HERO_SKILL_CATEGORIES = {
   // The Undead
   vampire:        ["Combat","Strength","Speed","Academic"],
   necromancer:    ["Academic","Speed"],
-  dreg:           ["Combat","Speed"],
+  dreg:           ["Combat","Strength"],
   // Skaven of Clan Eshin
   adept:          ["Combat","Speed","Shooting","Strength"],
   sorcerer:       ["Academic","Speed"],
@@ -3836,6 +3836,7 @@ const HENCH_STAT_ADVANCES = [
   { idx:4, label:"Toughness"       },
   { idx:5, label:"Wounds"          },
   { idx:6, label:"Initiative"      },
+  { idx:7, label:"Attacks"         },
 ];
 
 // ============================================================
@@ -3882,7 +3883,7 @@ const SKILLS = {
 
   // --- Speed ---
   leap:   { name:"Leap",     category:"Speed",
-    desc:"May leap up to 2\" across gaps or over low obstacles when running or charging, without taking a falling test." },
+    desc:"May add D6\" to any movement when leaping across gaps or over low obstacles, without taking a falling test." },
   jumpUp: { name:"Jump Up",  category:"Speed",
     desc:"May stand up from a Knocked Down result without expending an action." },
   dodge:  { name:"Dodge",    category:"Speed",
@@ -3890,7 +3891,7 @@ const SKILLS = {
   acrobat:{ name:"Acrobat",  category:"Speed",
     desc:"May re-roll any Falling test. If the re-rolled result is still Out of Action, the warrior may also re-roll the injury result from the fall." },
   sprint: { name:"Sprint",   category:"Speed",
-    desc:"+2\" to this warrior's running distance (adds to their Movement when making a run move)." },
+    desc:"Triple this warrior's Movement when making a Run or Charge move." },
 
   // --- Strength ---
   mightyBlow: { name:"Mighty Blow",  category:"Strength",
@@ -3905,8 +3906,8 @@ const SKILLS = {
     desc:"May smash through doors and barricades as if this warrior had Strength 6 solely for the purpose of breaking them open." },
 
   // --- Extended / Dramatis Personae Skills ---
-  stepAside:         { name:"Step Aside",          category:"Speed",
-    desc:"Once per turn, may attempt to avoid a single hit in close combat. Roll a D6 — on a 4+ the hit is ignored entirely." },
+  stepAside:         { name:"Step Aside",          category:"Combat",
+    desc:"May attempt to avoid a hit in close combat. Roll a D6 — on a 5+ the hit is ignored entirely." },
   fearsome:          { name:"Fearsome",             category:"Combat",
     desc:"This warrior's terrible visage or reputation causes Fear. Enemy models must pass a Fear test before charging or fighting this warrior." },
   lightningReflexes: { name:"Lightning Reflexes",  category:"Speed",
@@ -4991,8 +4992,7 @@ function Roster({ warband, onBack, update, onExport }) {
   const [equipFor, setEquipFor] = useStateR(null); // warrior id
   const [advancingHero, setAdvancingHero] = useStateR(null);   // hero warrior id
   const [advancingGroup, setAdvancingGroup] = useStateR(null); // henchman groupId
-  const [ladsTalentHeroId, setLadsTalentHeroId]       = useStateR(null); // newly promoted hero waiting to pick skills
-  const [ladsTalentSkillsLeft, setLadsTalentSkillsLeft] = useStateR(0);  // 2 → 1 → 0
+  const [ladsTalentHeroId, setLadsTalentHeroId] = useStateR(null); // newly promoted hero waiting to pick skill categories
   const [spellbookFor, setSpellbookFor] = useStateR(null);    // warrior id
   const [hireMoreFor, setHireMoreFor] = useStateR(null);      // groupId
   const [hiredSwordsOpen, setHiredSwordsOpen] = useStateR(false);
@@ -5387,6 +5387,8 @@ function Roster({ warband, onBack, update, onExport }) {
         const nx = { ...x, advancesUsed: (x.advancesUsed || 0) + 1 };
         if (adv.type === "skill") {
           nx.skills = [...(x.skills || []), adv.key];
+        } else if (adv.type === "spell") {
+          nx.knownSpells = [...(x.knownSpells || []), adv.key];
         } else if (adv.type === "stat") {
           const p = [...x.profile]; p[adv.idx]++; nx.profile = p;
         }
@@ -5432,9 +5434,9 @@ function Roster({ warband, onBack, update, onExport }) {
       cost:        tmpl.cost,
       xp:          tmpl.xp,
       advancesUsed: 0,         // reset: starts fresh on the hero advance track
-      skills:      [],         // will be filled by the 2-skill pick below
+      skills:      [],
       knownSpells: tmpl.knownSpells ? [...tmpl.knownSpells] : [],
-      profile:     [...tmpl.profile],                          // keeps all stat gains
+      profile:     [...tmpl.profile],
       gear:        (tmpl.gear      || []).map(g => ({ ...g })),
       mutations:   (tmpl.mutations || []).map(m => ({ ...m })),
       list:        tmpl.list,
@@ -5443,7 +5445,6 @@ function Roster({ warband, onBack, update, onExport }) {
       isLeader:    false,
       injuries:    [...(tmpl.injuries || [])],
       notes:       tmpl.notes || "",
-      isLadsGotTalent: true,   // marker; cleared once skills are chosen
     };
     // Remove the template warrior, append the new hero.
     // Remaining group members are untouched — their advancesUsed stays as-is.
@@ -5453,31 +5454,19 @@ function Roster({ warband, onBack, update, onExport }) {
     }));
     setAdvancingGroup(null);
     setLadsTalentHeroId(newHeroId);
-    setLadsTalentSkillsLeft(2);
   };
 
-  // Called once per skill pick (twice total) from LadsTalentSkillModal
-  const applyLadsHeroSkill = (heroId, skillKey) => {
+  // Called when player confirms their 2 skill category choices for the new Lad's Got Talent hero.
+  // Stores the categories then immediately opens the hero advancement modal for their free roll.
+  const applyLadsCategories = (heroId, cats) => {
     update(w => ({
       ...w,
       warriors: w.warriors.map(x =>
-        x.id === heroId
-          ? { ...x, skills: [...(x.skills || []), skillKey], advancesUsed: (x.advancesUsed || 0) + 1 }
-          : x
+        x.id === heroId ? { ...x, customSkillCategories: cats } : x
       ),
     }));
-    const left = ladsTalentSkillsLeft - 1;
-    setLadsTalentSkillsLeft(left);
-    if (left <= 0) {
-      // Clear the marker once all skills are chosen
-      update(w => ({
-        ...w,
-        warriors: w.warriors.map(x =>
-          x.id === heroId ? { ...x, isLadsGotTalent: false } : x
-        ),
-      }));
-      setLadsTalentHeroId(null);
-    }
+    setLadsTalentHeroId(null);
+    setAdvancingHero(heroId);
   };
 
   // Leader logic — fall back to unitDef.min===1 for warbands without explicit isLeader set
@@ -5686,12 +5675,10 @@ function Roster({ warband, onBack, update, onExport }) {
       {ladsTalentHeroId && (() => {
         const hero = warband.warriors.find(x => x.id === ladsTalentHeroId);
         return hero ? (
-          <LadsTalentSkillModal
+          <LadsTalentCategoryModal
             warrior={hero}
-            warband={warband}
-            skillsLeft={ladsTalentSkillsLeft}
-            onApply={(sk) => applyLadsHeroSkill(ladsTalentHeroId, sk)}
-            onClose={() => { setLadsTalentHeroId(null); setLadsTalentSkillsLeft(0); }} />
+            onApply={(cats) => applyLadsCategories(ladsTalentHeroId, cats)}
+            onClose={() => setLadsTalentHeroId(null)} />
         ) : null;
       })()}
       {spellbookFor && (() => {
@@ -6681,16 +6668,18 @@ function XpBar({ warrior, onAdjust, onAdvance }) {
 
 // ── AdvancementModal ──────────────────────────────────────────────
 function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
-  const [mode, setMode] = useStateR(null); // null | 'skill' | 'stat' | 'lads'
+  const [mode, setMode] = useStateR(null); // null | 'skill' | 'stat' | 'lads' | 'spell'
   const [selectedSkill, setSelectedSkill] = useStateR(null);
   const [selectedStat, setSelectedStat] = useStateR(null);
   const [skillDetail, setSkillDetail] = useStateR(null);
+  const [selectedSpell, setSelectedSpell] = useStateR(null);
+  const [spellDetail, setSpellDetail] = useStateR(null);
 
   const pending = pendingAdvances(warrior);
   const isHero = warrior.role === "Hero";
 
   // Build available skills by category (heroes only)
-  const categories = isHero ? (MR.HERO_SKILL_CATEGORIES[warrior.unitId] || []) : [];
+  const categories = isHero ? (warrior.customSkillCategories || MR.HERO_SKILL_CATEGORIES[warrior.unitId] || []) : [];
   const skillsByCategory = useMemoR(() => {
     if (!isHero) return {};
     const byCat = {};
@@ -6705,7 +6694,17 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
 
   const statOptions = isHero ? MR.HERO_STAT_ADVANCES : MR.HENCH_STAT_ADVANCES;
 
-  const canConfirm = (mode === "skill" && selectedSkill) || (mode === "stat" && selectedStat !== null) || mode === "lads";
+  // Spell learning (wizards only)
+  const school = spellSchool(warrior);
+  const availableSpells = useMemoR(() => {
+    if (!school) return [];
+    const known = warrior.knownSpells || [];
+    return Object.entries(MR.SPELLS)
+      .filter(([k, s]) => s.school === school && !known.includes(k))
+      .map(([k, s]) => ({ key: k, ...s }));
+  }, [school, warrior.knownSpells]);
+
+  const canConfirm = (mode === "skill" && selectedSkill) || (mode === "stat" && selectedStat !== null) || mode === "lads" || (mode === "spell" && selectedSpell);
 
   const confirm = () => {
     if (mode === "skill" && selectedSkill) {
@@ -6714,6 +6713,8 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
       onApply({ type: "stat", idx: selectedStat });
     } else if (mode === "lads") {
       onApply({ type: "ladsGotTalent" });
+    } else if (mode === "spell" && selectedSpell) {
+      onApply({ type: "spell", key: selectedSpell });
     }
   };
 
@@ -6739,19 +6740,28 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
           <span style={{color:"var(--blood-bright)"}}>{pending} advance{pending !== 1 ? "s" : ""} ready</span>
         </p>
 
-        {/* Mode selector — heroes get Skill / Stat; henchman groups get Stat / Lad's Got Talent */}
+        {/* Mode selector — heroes get Skill / Stat (+ Spell for wizards); henchman groups get Stat / Lad's Got Talent */}
         {isHero && !isGroup && (
           <div className="adv-mode-btns">
             <button
               className={"adv-mode-btn" + (mode === "skill" ? " active" : "")}
-              onClick={() => { setMode("skill"); setSelectedStat(null); }}>
+              onClick={() => { setMode("skill"); setSelectedStat(null); setSelectedSpell(null); setSpellDetail(null); }}>
               <span className="adv-mode-icon">✦</span>
               <span className="adv-mode-label">New Skill</span>
               <span className="adv-mode-sub">Choose from your skill lists</span>
             </button>
+            {school && availableSpells.length > 0 && (
+              <button
+                className={"adv-mode-btn" + (mode === "spell" ? " active" : "")}
+                onClick={() => { setMode("spell"); setSelectedStat(null); setSelectedSkill(null); setSkillDetail(null); }}>
+                <span className="adv-mode-icon">✧</span>
+                <span className="adv-mode-label">Learn a Spell</span>
+                <span className="adv-mode-sub">{school}</span>
+              </button>
+            )}
             <button
               className={"adv-mode-btn" + (mode === "stat" ? " active" : "")}
-              onClick={() => { setMode("stat"); setSelectedSkill(null); setSkillDetail(null); }}>
+              onClick={() => { setMode("stat"); setSelectedSkill(null); setSkillDetail(null); setSelectedSpell(null); setSpellDetail(null); }}>
               <span className="adv-mode-icon">↑</span>
               <span className="adv-mode-label">Improve Stat</span>
               <span className="adv-mode-sub">Increase a characteristic by +1</span>
@@ -6782,8 +6792,9 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
           <div className="lads-panel">
             <p>One warrior separates from the group and is elevated to <strong>Hero</strong> status.</p>
             <ul>
-              <li>Keeps all characteristic increases and equipment.</li>
-              <li>Immediately chooses <strong>2 skills</strong> from your warband's hero lists.</li>
+              <li>Keeps all characteristic increases, XP, and equipment.</li>
+              <li>You choose <strong>2 skill lists</strong> (Combat, Shooting, Academic, Strength, or Speed) that this hero can draw from in future.</li>
+              <li>Immediately makes <strong>one roll</strong> on the Heroes Advance table.</li>
               <li>
                 {groupSize > 1
                   ? <React.Fragment>The remaining <strong>{groupSize - 1}</strong> warrior{groupSize - 1 !== 1 ? "s" : ""} still advance — they roll again.</React.Fragment>
@@ -6821,6 +6832,36 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
           </div>
         )}
 
+        {/* Spell picker (wizards only) */}
+        {mode === "spell" && (
+          <div className="adv-skill-section">
+            <div className="skill-category">
+              <div className="skill-cat-title">{school}</div>
+              <div className="skill-grid">
+                {availableSpells.map(sp => (
+                  <button
+                    key={sp.key}
+                    className={"skill-tile" + (selectedSpell === sp.key ? " selected" : "")}
+                    onClick={() => { setSelectedSpell(sp.key); setSpellDetail(sp); }}>
+                    <div className="skill-tile-name">{sp.name}</div>
+                    <div className="skill-tile-sub" style={{ fontSize: "0.7rem", color: "var(--ink-faint)" }}>Cast {sp.castRoll}+</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {spellDetail && (
+              <div className="skill-detail">
+                <div className="skill-detail-name">✧ {spellDetail.name}
+                  <span style={{ fontWeight: "normal", marginLeft: 8, fontSize: "0.8rem", color: "var(--ink-muted)" }}>
+                    Cast {spellDetail.castRoll}+ · {spellDetail.range}
+                  </span>
+                </div>
+                <div className="skill-detail-desc">{spellDetail.desc}</div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stat picker */}
         {mode === "stat" && (
           <div className="adv-stat-section">
@@ -6849,6 +6890,8 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
           <button className="btn primary" disabled={!canConfirm} onClick={confirm}>
             {mode === "skill" && selectedSkill
               ? `Take Skill — ${MR.SKILLS[selectedSkill]?.name}`
+              : mode === "spell" && selectedSpell
+              ? `Learn Spell — ${MR.SPELLS[selectedSpell]?.name}`
               : mode === "stat" && selectedStat !== null
               ? `+1 ${MR.STAT_LABELS[selectedStat]} — Confirm`
               : mode === "lads"
@@ -6861,44 +6904,23 @@ function AdvancementModal({ warrior, isGroup, groupSize, onApply, onClose }) {
   );
 }
 
-// ── LadsTalentSkillModal ──────────────────────────────────────────
+// ── LadsTalentCategoryModal ───────────────────────────────────────
 // Shown immediately after a henchman is promoted via Lad's Got Talent.
-// The new hero picks 2 skills from the warband's hero skill lists.
-function LadsTalentSkillModal({ warrior, warband, skillsLeft, onApply, onClose }) {
-  const [selectedSkill, setSelectedSkill] = useStateR(null);
-  const [skillDetail, setSkillDetail]     = useStateR(null);
+// The player picks exactly 2 skill lists that this new hero can draw from.
+const ALL_SKILL_LISTS = ["Combat", "Shooting", "Academic", "Strength", "Speed"];
 
-  // Collect all skill categories available to any existing hero in the warband.
-  // Also add the warrior's own unitId categories if they're in the table.
-  const categories = useMemoR(() => {
-    const cats = new Set();
-    warband.warriors.forEach(w => {
-      const wCats = MR.HERO_SKILL_CATEGORIES[w.unitId];
-      if (wCats) wCats.forEach(c => cats.add(c));
+function LadsTalentCategoryModal({ warrior, onApply, onClose }) {
+  const [selected, setSelected] = useStateR([]);
+
+  const toggle = (cat) => {
+    setSelected(prev => {
+      if (prev.includes(cat)) return prev.filter(c => c !== cat);
+      if (prev.length >= 2) return prev; // already have 2
+      return [...prev, cat];
     });
-    if (cats.size === 0) ["Combat", "Speed"].forEach(c => cats.add(c));
-    return [...cats];
-  }, [warband.warriors]);
-
-  const skillsByCategory = useMemoR(() => {
-    const byCat = {};
-    categories.forEach(cat => { byCat[cat] = []; });
-    Object.entries(MR.SKILLS).forEach(([k, s]) => {
-      if (categories.includes(s.category) && !(warrior.skills || []).includes(k)) {
-        byCat[s.category].push({ key: k, ...s });
-      }
-    });
-    return byCat;
-  }, [warrior.skills, categories]);
-
-  const handleConfirm = () => {
-    if (!selectedSkill) return;
-    onApply(selectedSkill);
-    setSelectedSkill(null);
-    setSkillDetail(null);
   };
 
-  const skillsChosen = 2 - skillsLeft;
+  const canConfirm = selected.length === 2;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -6908,39 +6930,29 @@ function LadsTalentSkillModal({ warrior, warband, skillsLeft, onApply, onClose }
         <p className="epigraph muted" style={{ textAlign: "center" }}>
           {warrior.name} joins the heroes
           <span style={{ color: "var(--ink-faint)", margin: "0 6px" }}>·</span>
-          <span style={{ color: "var(--candle-bright)" }}>Choose skill {skillsChosen + 1} of 2</span>
+          <span style={{ color: "var(--candle-bright)" }}>Choose 2 skill lists</span>
         </p>
 
-        <div className="adv-skill-section">
-          {Object.entries(skillsByCategory).map(([cat, skills]) =>
-            skills.length === 0 ? null : (
-              <div key={cat} className="skill-category">
-                <div className="skill-cat-title">{cat}</div>
-                <div className="skill-grid">
-                  {skills.map(s => (
-                    <button
-                      key={s.key}
-                      className={"skill-tile" + (selectedSkill === s.key ? " selected" : "")}
-                      onClick={() => { setSelectedSkill(s.key); setSkillDetail(s); }}>
-                      <div className="skill-tile-name">{s.name}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          )}
-          {skillDetail && (
-            <div className="skill-detail">
-              <div className="skill-detail-name">✦ {skillDetail.name}</div>
-              <div className="skill-detail-desc">{skillDetail.desc}</div>
-            </div>
-          )}
+        <p style={{ textAlign: "center", fontSize: "0.85rem", color: "var(--ink-muted)", marginBottom: 16 }}>
+          These are the skill lists this hero may draw from when gaining new skills.
+        </p>
+
+        <div className="adv-mode-btns" style={{ flexWrap: "wrap", gap: 10 }}>
+          {ALL_SKILL_LISTS.map(cat => (
+            <button
+              key={cat}
+              className={"adv-mode-btn" + (selected.includes(cat) ? " active" : "")}
+              style={{ flex: "1 1 calc(33% - 10px)", minWidth: 100 }}
+              onClick={() => toggle(cat)}>
+              <span className="adv-mode-label">{cat}</span>
+            </button>
+          ))}
         </div>
 
         <div className="detail-footer" style={{ marginTop: 28 }}>
-          <button className="btn ghost" onClick={onClose}>Skip Remaining</button>
-          <button className="btn primary" disabled={!selectedSkill} onClick={handleConfirm}>
-            {selectedSkill ? `Take Skill — ${MR.SKILLS[selectedSkill]?.name}` : "Choose a Skill"}
+          <button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" disabled={!canConfirm} onClick={() => onApply(selected)}>
+            {canConfirm ? `Confirm — ${selected.join(" & ")}` : `Choose ${2 - selected.length} more`}
           </button>
         </div>
       </div>
@@ -8035,7 +8047,7 @@ function printRoster(warband, def) {
   setTimeout(() => { try { win.print(); } catch(err) {} }, 500);
 }
 
-Object.assign(window, { Roster, RecruitModal, EquipModal, WarriorCard, TreasureBar, Section, EqTile, UnitTile, Tip, XpBar, AdvancementModal, LadsTalentSkillModal, SpellbookModal, HireMoreModal, HiredSwordsModal, DramatisPersonaeModal, NotesModal, StockpileModal, GiveStockpileDialog, TradingPostModal, AssignItemModal, TpDetailDialog });
+Object.assign(window, { Roster, RecruitModal, EquipModal, WarriorCard, TreasureBar, Section, EqTile, UnitTile, Tip, XpBar, AdvancementModal, LadsTalentCategoryModal, SpellbookModal, HireMoreModal, HiredSwordsModal, DramatisPersonaeModal, NotesModal, StockpileModal, GiveStockpileDialog, TradingPostModal, AssignItemModal, TpDetailDialog });
 
 </script>
 <script type="text/babel">
