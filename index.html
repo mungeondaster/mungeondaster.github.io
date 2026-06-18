@@ -2896,6 +2896,10 @@ body::after {
 
 const EQUIP = {
   // === Melee ===
+  freeDagger: { name: "Free Dagger", cost: 0, type: "melee",
+    stats: { str: "As user", saveMod: "—" },
+    special: ["alwaysCarry","penaltyToWound"],
+    note: "Every warrior is entitled to one free dagger." },
   dagger: { name: "Dagger", cost: 2, type: "melee",
     stats: { str: "As user", saveMod: "—" },
     special: ["alwaysCarry","penaltyToWound"],
@@ -6298,7 +6302,8 @@ function EquipModal({ warrior, warband, def, onClose, onCommit, onSell, onEquipF
   const heroOnly = warrior.list === "sisters" && warrior.role === "Hero" ? MR.LISTS.sistersHeroOnly : [];
 
   const group = (items, type) => items.filter(k => MR.EQUIP[k]?.type === type);
-  const melee = group(list, "melee");
+  // Free dagger is available to every warrior who can equip gear
+  const melee = ["freeDagger", ...group(list, "melee")];
   const missile = group(list, "missile");
   const armour = group(list, "armour");
 
