@@ -900,6 +900,17 @@ body::after {
 .recruit-tile .rt-cost { color: var(--candle); font-weight: 500; }
 .recruit-tile .rt-limit { color: var(--ink-faint); font-size: 11px; }
 
+/* ============ warband notes bar ============ */
+.wb-notes-bar {
+  border: 1px solid var(--rule);
+  background: var(--bg-card);
+  padding: 16px 20px;
+  margin-bottom: 28px;
+}
+.wb-notes-bar .notes-label {
+  margin-bottom: 8px;
+}
+
 /* ============ notes / lore block ============ */
 .lore-block {
   background:
@@ -2772,6 +2783,204 @@ body::after {
   transition: background 0.15s;
 }
 .sync-error-bar:hover { background: rgba(160, 50, 50, 0.26); }
+
+/* ── Sigmar Mode — Roster skull trigger ──────────────────────────── */
+.sigmar-roster-skull-wrap {
+  cursor: default;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  margin-bottom: 20px;
+  opacity: 0.25;
+  transition: opacity 0.2s;
+}
+.sigmar-roster-skull-wrap:hover { opacity: 0.45; }
+
+.sigmar-skull {
+  width: 20px; height: 20px;
+  color: var(--text-muted);
+}
+.sigmar-skull-active {
+  width: 20px; height: 20px;
+  color: var(--candle-bright);
+  animation: sigmar-pulse 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px var(--candle-dim));
+}
+
+/* Active mode: reset opacity on the wrapper */
+.sigmar-roster-skull-wrap:has(.sigmar-skull-active) {
+  opacity: 1;
+}
+
+/* ── Sigmar Mode — Active banner ─────────────────────────────────── */
+.sigmar-roster-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #1e1800 0%, var(--bg-card) 100%);
+  border: 1px solid rgba(180,140,60,0.5);
+  border-left: 3px solid var(--candle-bright);
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--candle-bright);
+  animation: sigmar-appear 0.4s ease forwards;
+}
+.sigmar-deactivate-btn {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.sigmar-deactivate-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* ── Sigmar Mode — ⚔ Edit button on WarriorCard ─────────────────── */
+.sigmar-edit-btn {
+  font-size: 0.72rem;
+  padding: 2px 9px;
+  color: var(--candle-bright);
+  background: rgba(180,140,60,0.14);
+  border: 1px solid rgba(180,140,60,0.4);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.sigmar-edit-btn:hover {
+  background: rgba(180,140,60,0.28);
+  border-color: var(--candle-bright);
+}
+
+/* ── SigmarEditModal ─────────────────────────────────────────────── */
+.sigmar-edit-modal {
+  max-width: 560px;
+  width: 100%;
+}
+
+.se-section-title {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--candle-dim);
+  border-bottom: 1px solid var(--rule-gold);
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+
+/* Stats grid — 9 columns for the 9 profile values */
+.se-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.se-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.se-stat-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.se-stat-input {
+  width: 100%;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--candle-bright);
+  background: rgba(180,140,60,0.08);
+  border: 1px solid rgba(180,140,60,0.35);
+  border-radius: 4px;
+  padding: 5px 2px;
+  -moz-appearance: textfield;
+}
+.se-stat-input::-webkit-outer-spin-button,
+.se-stat-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.se-stat-input:focus {
+  outline: none;
+  border-color: var(--candle-bright);
+  background: rgba(180,140,60,0.16);
+}
+
+/* Skill list */
+.se-skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.se-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 5px 10px;
+}
+.se-skill-name {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.se-skill-cat {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.se-skill-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.se-skill-remove:hover { color: #d88080; }
+
+/* Add skill row */
+.se-add-skill-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.se-skill-select {
+  flex: 1;
+  font-family: var(--body);
+  font-size: 0.88rem;
+  background: var(--bg-input, var(--bg-card));
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 5px 8px;
+}
+.se-skill-select:focus { outline: none; border-color: var(--candle-dim); }
 
 </style>
 </head>
@@ -4689,7 +4898,7 @@ function skillTip(key) {
   );
 }
 
-function Roster({ warband, onBack, update, onExport }) {
+function Roster({ warband, onBack, update, onExport, globalSigmarMode }) {
   const def = MR.WARBANDS[warband.faction];
   const [recruitOpen, setRecruitOpen] = useStateR(false);
   const [equipFor, setEquipFor] = useStateR(null); // warrior id
@@ -4703,6 +4912,31 @@ function Roster({ warband, onBack, update, onExport }) {
   const [tradingPostOpen, setTradingPostOpen] = useStateR(false);
   const [stockpileOpen, setStockpileOpen] = useStateR(false);
   const [injuryFor, setInjuryFor] = useStateR(null);          // warrior id
+  const [rosterSigmarMode, setRosterSigmarMode] = useStateR(false);
+  const [sigmarEditFor, setSigmarEditFor] = useStateR(null);  // warrior id for stat/skill editing
+  const [sigmarClicks, setSigmarClicks] = useStateR(0);
+  const sigmarClickTimer = useRefR(null);
+
+  const sigmarMode = rosterSigmarMode || !!globalSigmarMode;
+
+  const handleSigmarSkullClick = () => {
+    clearTimeout(sigmarClickTimer.current);
+    const next = sigmarClicks + 1;
+    if (next >= 5) {
+      setRosterSigmarMode(m => !m);
+      setSigmarClicks(0);
+    } else {
+      setSigmarClicks(next);
+      sigmarClickTimer.current = setTimeout(() => setSigmarClicks(0), 3000);
+    }
+  };
+
+  const applySigmarEdit = (id, changes) => {
+    update(wb => ({
+      ...wb,
+      warriors: wb.warriors.map(w => w.id === id ? { ...w, ...changes } : w),
+    }));
+  };
 
   const totalSpent = warband.warriors.reduce((sum, w) => sum + w.cost + w.gear.reduce((s,g)=>s + (MR.EQUIP[g.key]?.cost || 0), 0) + (w.mutations||[]).reduce((s,m)=>s + (m.paidCost || MR.MUTATIONS[m.key].cost), 0), 0);
 
@@ -4711,6 +4945,7 @@ function Roster({ warband, onBack, update, onExport }) {
   };
 
   const recruit = (unitDef, count = 1) => {
+    const free = sigmarMode;
     if (unitDef.role === "Hero") {
       const idx = warband.warriors.filter(x => x.unitId === unitDef.id).length + 1;
       const newW = {
@@ -4735,7 +4970,7 @@ function Roster({ warband, onBack, update, onExport }) {
         injuries: [],
         notes: "",
       };
-      update(w => ({ ...w, gold: w.gold - unitDef.cost, warriors: [...w.warriors, newW] }));
+      update(w => ({ ...w, gold: free ? w.gold : w.gold - unitDef.cost, warriors: [...w.warriors, newW] }));
     } else {
       // henchman: spawn `count` members sharing a groupId
       const groupId = uid();
@@ -4766,7 +5001,7 @@ function Roster({ warband, onBack, update, onExport }) {
         injuries: [],
         notes: "",
       }));
-      update(w => ({ ...w, gold: w.gold - totalCost, warriors: [...w.warriors, ...newWs] }));
+      update(w => ({ ...w, gold: free ? w.gold : w.gold - totalCost, warriors: [...w.warriors, ...newWs] }));
     }
   };
 
@@ -4807,10 +5042,10 @@ function Roster({ warband, onBack, update, onExport }) {
     const wr = warband.warriors.find(x => x.id === warriorId);
     const baseCost = MR.MUTATIONS[mKey].cost;
     const cost = wr.mutations.length === 0 ? baseCost : baseCost * 2;
-    if (warband.gold < cost) return;
+    if (!sigmarMode && warband.gold < cost) return;
     update(w => ({
       ...w,
-      gold: w.gold - cost,
+      gold: sigmarMode ? w.gold : w.gold - cost,
       warriors: w.warriors.map(x => x.id === warriorId ? { ...x, mutations: [...x.mutations, { key: mKey, paidCost: cost }] } : x),
     }));
   };
@@ -4818,7 +5053,7 @@ function Roster({ warband, onBack, update, onExport }) {
   // Commit a cart of items at once (purchase action from EquipModal)
   const commitCart = (warriorId, cart) => {
     const wr = warband.warriors.find(x => x.id === warriorId);
-    const isFree = !!(wr && wr.isHiredSword);
+    const isFree = !!(wr && wr.isHiredSword) || sigmarMode;
     const totalCost = isFree ? 0 : cart.reduce((s, c) => s + c.cost, 0);
     if (!isFree && warband.gold < totalCost) return;
     const newGear = cart.filter(c => c.kind === "gear").map(c => ({ key: c.key, paidCost: isFree ? 0 : c.cost }));
@@ -4834,7 +5069,7 @@ function Roster({ warband, onBack, update, onExport }) {
 
   // ── Hired Sword handlers ────────────────────────────────────────────
   const hireHiredSword = (hsDef) => {
-    if (warband.gold < hsDef.cost) return;
+    if (!sigmarMode && warband.gold < hsDef.cost) return;
     const newW = {
       id: uid(),
       hiredSwordId: hsDef.id,
@@ -4859,7 +5094,7 @@ function Roster({ warband, onBack, update, onExport }) {
       injuries: [],
       notes: "",
     };
-    update(w => ({ ...w, gold: w.gold - hsDef.cost, warriors: [...w.warriors, newW] }));
+    update(w => ({ ...w, gold: sigmarMode ? w.gold : w.gold - hsDef.cost, warriors: [...w.warriors, newW] }));
     setHiredSwordsOpen(false);
   };
 
@@ -4891,7 +5126,7 @@ function Roster({ warband, onBack, update, onExport }) {
     } else {
       newWarriors = [makeW(dpDef.name, dpDef.profile, 0)];
     }
-    update(w => ({ ...w, gold: w.gold - dpDef.hireCost, warriors: [...w.warriors, ...newWarriors] }));
+    update(w => ({ ...w, gold: sigmarMode ? w.gold : w.gold - dpDef.hireCost, warriors: [...w.warriors, ...newWarriors] }));
     setDpOpen(false);
   };
 
@@ -4910,7 +5145,7 @@ function Roster({ warband, onBack, update, onExport }) {
     const unitDef = def.units.find(u => u.id === member.unitId);
     if (!unitDef) return;
     const totalCost = unitDef.cost * count;
-    if (warband.gold < totalCost) return;
+    if (!sigmarMode && warband.gold < totalCost) return;
     const currentIdx = warband.warriors.filter(x => x.unitId === member.unitId).length;
     const newWs = Array.from({ length: count }, (_, i) => ({
       id: uid(),
@@ -4936,7 +5171,7 @@ function Roster({ warband, onBack, update, onExport }) {
       injuries: [],
       notes: "",
     }));
-    update(w => ({ ...w, gold: w.gold - totalCost, warriors: [...w.warriors, ...newWs] }));
+    update(w => ({ ...w, gold: sigmarMode ? w.gold : w.gold - totalCost, warriors: [...w.warriors, ...newWs] }));
   };
 
   // ── Spell & group-rename handlers ───────────────────────────────
@@ -4968,6 +5203,14 @@ function Roster({ warband, onBack, update, onExport }) {
       ...wb,
       warriors: wb.warriors.map(w => w.id === warriorId ? { ...w, notes } : w),
     }));
+  };
+
+  const updateWarbandNotes = (notes) => {
+    update(wb => ({ ...wb, notes }));
+  };
+
+  const updateWarbandMeta = (name, playerName) => {
+    update(wb => ({ ...wb, name, playerName }));
   };
 
   // ── Trading Post / Stockpile handlers ─────────────────────────
@@ -5229,7 +5472,12 @@ function Roster({ warband, onBack, update, onExport }) {
                    warriors={warband.warriors.length} maxW={effectiveMaxW(warband, def)}
                    totalXp={warband.warriors.reduce((s, x) => s + (x.xp || 0), 0)}
                    dpRating={[...new Set(warband.warriors.filter(x => x.isDramatisPersonae).map(x => x.dpId))].reduce((s, id) => s + (MR.DRAMATIS_PERSONAE.find(d => d.id === id)?.ratingBonus || 0), 0)}
+                   warbandName={warband.name}
+                   playerName={warband.playerName || ""}
+                   onUpdateMeta={updateWarbandMeta}
                    adjust={adjust} />
+
+      <WarbandNotes notes={warband.notes || ""} onChange={updateWarbandNotes} />
 
       <div className="lore-block">
         <div className="l-title">Warband Rules · {def.name}</div>
@@ -5240,6 +5488,7 @@ function Roster({ warband, onBack, update, onExport }) {
         {heroes.map((w, i) => (
           <WarriorCard key={w.id} warrior={w} idx={i} def={def}
                        isLeader={isEffectiveLeader(w)}
+                       sigmarMode={sigmarMode}
                        onRename={(n) => renameWarrior(w.id, n)}
                        onFire={() => fire(w.id)}
                        onEquip={() => setEquipFor(w.id)}
@@ -5248,7 +5497,8 @@ function Roster({ warband, onBack, update, onExport }) {
                        onAdvance={() => setAdvancingHero(w.id)}
                        onSpellbook={isWizard(w) ? () => setSpellbookFor(w.id) : undefined}
                        onPromote={() => toggleLeader(w.id)}
-                       onOpenInjuries={() => setInjuryFor(w.id)} />
+                       onOpenInjuries={() => setInjuryFor(w.id)}
+                       onSigmarEdit={() => setSigmarEditFor(w.id)} />
         ))}
         {heroes.length === 0 && <div className="muted" style={{fontStyle:"italic", padding:"10px 0"}}>No heroes yet. Every warband must field a leader before its first battle.</div>}
       </Section>
@@ -5279,6 +5529,7 @@ function Roster({ warband, onBack, update, onExport }) {
             <WarriorCard key={w.id} warrior={w} idx={i} def={def}
                          isLeader={false}
                          isHiredSword={true}
+                         sigmarMode={sigmarMode}
                          onRename={(n) => renameWarrior(w.id, n)}
                          onFire={() => dismissHiredSword(w.id)}
                          onEquip={() => setEquipFor(w.id)}
@@ -5287,7 +5538,8 @@ function Roster({ warband, onBack, update, onExport }) {
                          onAdvance={() => setAdvancingHero(w.id)}
                          onSpellbook={isWizard(w) ? () => setSpellbookFor(w.id) : undefined}
                          onPromote={undefined}
-                         onOpenInjuries={() => setInjuryFor(w.id)} />
+                         onOpenInjuries={() => setInjuryFor(w.id)}
+                         onSigmarEdit={() => setSigmarEditFor(w.id)} />
           ))}
         </Section>
       )}
@@ -5299,6 +5551,7 @@ function Roster({ warband, onBack, update, onExport }) {
                          isLeader={false}
                          isHiredSword={false}
                          isDramatisPersonae={true}
+                         sigmarMode={sigmarMode}
                          onRename={(n) => renameWarrior(w.id, n)}
                          onFire={() => dismissDramatisPersonae(w.dpId)}
                          onEquip={() => setEquipFor(w.id)}
@@ -5307,15 +5560,16 @@ function Roster({ warband, onBack, update, onExport }) {
                          onAdvance={() => setAdvancingHero(w.id)}
                          onSpellbook={isWizard(w) ? () => setSpellbookFor(w.id) : undefined}
                          onPromote={undefined}
-                         onOpenInjuries={() => setInjuryFor(w.id)} />
+                         onOpenInjuries={() => setInjuryFor(w.id)}
+                         onSigmarEdit={() => setSigmarEditFor(w.id)} />
           ))}
         </Section>
       )}
 
       <div style={{textAlign:"center", marginTop: 30, display:"flex", justifyContent:"center", gap:12, flexWrap:"wrap"}}>
         <button className="btn primary" onClick={() => setRecruitOpen(true)}
-                disabled={warband.warriors.length >= effectiveMaxW(warband, def)}>
-          {warband.warriors.length >= effectiveMaxW(warband, def) ? "Warband at Maximum" : "+ Recruit a Warrior"}
+                disabled={!sigmarMode && warband.warriors.length >= effectiveMaxW(warband, def)}>
+          {(!sigmarMode && warband.warriors.length >= effectiveMaxW(warband, def)) ? "Warband at Maximum" : "+ Recruit a Warrior"}
         </button>
         <button className="btn hs-btn" onClick={() => setHiredSwordsOpen(true)}>
           ⚔ Hired Swords
@@ -5339,6 +5593,19 @@ function Roster({ warband, onBack, update, onExport }) {
         </button>
       </div>
       <p className="scroll-hint">Total Spent · {totalSpent}gc · Starting Gold {def.startGold}gc</p>
+
+      {rosterSigmarMode && (
+        <div className="sigmar-roster-banner">
+          ⚔ Sigmar Mode Active — All purchases free · Stats and skills fully editable
+          <button className="sigmar-deactivate-btn" onClick={() => setRosterSigmarMode(false)}>Deactivate</button>
+        </div>
+      )}
+
+      <div className="sigmar-roster-skull-wrap" onClick={handleSigmarSkullClick} title="">
+        <svg className={rosterSigmarMode ? "sigmar-skull-active" : "sigmar-skull"} viewBox="0 0 24 24" fill="none">
+          <path d="M12 3 C7 3 4 7 4 11 C4 14 5 15 6 16 L6 19 L9 19 L9 21 L11 21 L11 19 L13 19 L13 21 L15 21 L15 19 L18 19 L18 16 C19 15 20 14 20 11 C20 7 17 3 12 3 Z M9 11 A1.5 1.5 0 1 1 9 10.99 Z M15 11 A1.5 1.5 0 1 1 15 10.99 Z" fill="currentColor"/>
+        </svg>
+      </div>
 
       {recruitOpen && (
         <RecruitModal warband={warband} def={def}
@@ -5446,11 +5713,20 @@ function Roster({ warband, onBack, update, onExport }) {
             onUpdateNote={(text) => updateWarriorNote(injuryFor, text)} />
         ) : null;
       })()}
+      {sigmarEditFor && (() => {
+        const sw = warband.warriors.find(x => x.id === sigmarEditFor);
+        return sw ? (
+          <SigmarEditModal
+            warrior={sw}
+            onClose={() => setSigmarEditFor(null)}
+            onSave={(changes) => { applySigmarEdit(sigmarEditFor, changes); setSigmarEditFor(null); }} />
+        ) : null;
+      })()}
     </React.Fragment>
   );
 }
 
-function TreasureBar({ gold, wyrdstone, warriors, maxW, totalXp, dpRating, adjust }) {
+function TreasureBar({ gold, wyrdstone, warriors, maxW, totalXp, dpRating, adjust, warbandName, playerName, onUpdateMeta }) {
   const [editOpen, setEditOpen] = useStateR(false);
   const low = gold < 25;
   const rating = warriors * 5 + (totalXp || 0) + (dpRating || 0);
@@ -5481,17 +5757,24 @@ function TreasureBar({ gold, wyrdstone, warriors, maxW, totalXp, dpRating, adjus
         <span>Edit</span>
       </button>
     </div>
-    {editOpen && <TreasuryEditModal gold={gold} wyrdstone={wyrdstone} adjust={adjust} onClose={() => setEditOpen(false)} />}
+    {editOpen && <TreasuryEditModal gold={gold} wyrdstone={wyrdstone} adjust={adjust}
+                                    warbandName={warbandName} playerName={playerName} onUpdateMeta={onUpdateMeta}
+                                    onClose={() => setEditOpen(false)} />}
     </React.Fragment>
   );
 }
 
-function TreasuryEditModal({ gold, wyrdstone, adjust, onClose }) {
+function TreasuryEditModal({ gold, wyrdstone, adjust, onClose, warbandName, playerName, onUpdateMeta }) {
   const [goldDelta, setGoldDelta] = useStateR(0);
   const [shardDelta, setShardDelta] = useStateR(0);
+  const [newWarbandName, setNewWarbandName] = useStateR(warbandName || "");
+  const [newPlayerName, setNewPlayerName] = useStateR(playerName || "");
   const apply = () => {
     if (goldDelta) adjust("gold", goldDelta);
     if (shardDelta) adjust("wyrdstone", shardDelta);
+    if (onUpdateMeta && (newWarbandName.trim() !== warbandName || newPlayerName.trim() !== playerName)) {
+      onUpdateMeta(newWarbandName.trim() || warbandName, newPlayerName.trim());
+    }
     onClose();
   };
   const newGold = Math.max(0, gold + goldDelta);
@@ -5500,8 +5783,19 @@ function TreasuryEditModal({ gold, wyrdstone, adjust, onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal treasury-edit" onClick={e => e.stopPropagation()} style={{maxWidth: 480}}>
         <button className="modal-close" onClick={onClose}>✕</button>
-        <h2>Adjust Treasury</h2>
-        <p className="epigraph muted" style={{textAlign:"center"}}>Reckon the spoils of the dead city.</p>
+        <h2>Edit Warband</h2>
+        <p className="epigraph muted" style={{textAlign:"center"}}>Rename thy company and reckon the spoils.</p>
+
+        <div className="field" style={{marginTop:18}}>
+          <label>Warband Name</label>
+          <input value={newWarbandName} onChange={e => setNewWarbandName(e.target.value)}
+                 placeholder="Warband name" />
+        </div>
+        <div className="field">
+          <label>Player Name</label>
+          <input value={newPlayerName} onChange={e => setNewPlayerName(e.target.value)}
+                 placeholder="Your name" />
+        </div>
 
         <div className="te-row">
           <div className="te-head">
@@ -5555,9 +5849,110 @@ function TreasuryEditModal({ gold, wyrdstone, adjust, onClose }) {
 
         <div className="row" style={{justifyContent: "space-between", marginTop: 24, gap: 10}}>
           <button className="btn ghost" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={apply} disabled={!goldDelta && !shardDelta}>Commit Ledger</button>
+          <button className="btn primary" onClick={apply}>Save Changes</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SigmarEditModal({ warrior, onClose, onSave }) {
+  const [profile, setProfile] = useStateR([...warrior.profile]);
+  const [skills, setSkills] = useStateR([...(warrior.skills || [])]);
+  const [addSkillKey, setAddSkillKey] = useStateR("");
+
+  const allSkills = Object.entries(MR.SKILLS);
+  const available = allSkills.filter(([k]) => !skills.includes(k));
+
+  const setStat = (i, val) => {
+    const n = parseInt(val, 10);
+    if (isNaN(n) || n < 0) return;
+    setProfile(p => p.map((v, j) => j === i ? n : v));
+  };
+
+  const removeSkill = (key) => setSkills(ss => ss.filter(s => s !== key));
+
+  const addSkill = () => {
+    if (!addSkillKey || skills.includes(addSkillKey)) return;
+    setSkills(ss => [...ss, addSkillKey]);
+    setAddSkillKey("");
+  };
+
+  const save = () => onSave({ profile, skills });
+
+  const byCategory = useMemoR(() => {
+    const cats = {};
+    available.forEach(([k, v]) => {
+      (cats[v.category] = cats[v.category] || []).push([k, v]);
+    });
+    return cats;
+  }, [available.length, skills.length]);
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal sigmar-edit-modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <h2>⚔ Sigmar Edit — {warrior.name}</h2>
+        <p className="epigraph muted" style={{textAlign:"center"}}>By Sigmar's will, all things may be set right.</p>
+
+        <div className="se-section-title">Stats</div>
+        <div className="se-stats-grid">
+          {profile.map((val, i) => (
+            <div key={i} className="se-stat-cell">
+              <div className="se-stat-label" title={MR.STAT_NAMES[i]}>{MR.STAT_LABELS[i]}</div>
+              <input className="se-stat-input" type="number" min="0" max="99"
+                     value={val} onChange={e => setStat(i, e.target.value)} />
+            </div>
+          ))}
+        </div>
+
+        <div className="se-section-title" style={{marginTop:20}}>Skills</div>
+        {skills.length > 0 ? (
+          <div className="se-skill-list">
+            {skills.map(k => (
+              <div key={k} className="se-skill-row">
+                <span className="se-skill-name">{MR.SKILLS[k]?.name || k}</span>
+                <span className="se-skill-cat">{MR.SKILLS[k]?.category}</span>
+                <button className="se-skill-remove" onClick={() => removeSkill(k)}>✕</button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="muted" style={{fontStyle:"italic",fontSize:14,marginBottom:8}}>No skills.</div>
+        )}
+
+        <div className="se-add-skill-row">
+          <select className="se-skill-select" value={addSkillKey} onChange={e => setAddSkillKey(e.target.value)}>
+            <option value="">— Add a skill —</option>
+            {Object.entries(byCategory).sort().map(([cat, list]) => (
+              <optgroup key={cat} label={cat}>
+                {list.map(([k, v]) => <option key={k} value={k}>{v.name}</option>)}
+              </optgroup>
+            ))}
+          </select>
+          <button className="btn sm" onClick={addSkill} disabled={!addSkillKey}>Add</button>
+        </div>
+
+        <div className="row" style={{justifyContent:"space-between", marginTop:24}}>
+          <button className="btn ghost" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={save}>Save Changes</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WarbandNotes({ notes, onChange }) {
+  return (
+    <div className="wb-notes-bar">
+      <div className="notes-label">Warband Notes</div>
+      <textarea
+        className="notes-textarea"
+        value={notes}
+        onChange={e => onChange(e.target.value)}
+        placeholder="Campaign notes, debts owed, grudges held, victories to remember…"
+        rows={3}
+      />
     </div>
   );
 }
@@ -5573,7 +5968,7 @@ function Section({ title, count, children }) {
   );
 }
 
-function WarriorCard({ warrior, idx, def, onRename, onFire, onEquip, onSellGear, onAdjustXP, onAdvance, onSpellbook, isLeader, onPromote, isHiredSword, isDramatisPersonae, onOpenInjuries }) {
+function WarriorCard({ warrior, idx, def, onRename, onFire, onEquip, onSellGear, onAdjustXP, onAdvance, onSpellbook, isLeader, onPromote, isHiredSword, isDramatisPersonae, onOpenInjuries, sigmarMode, onSigmarEdit }) {
   return (
     <div className={"warrior" + (isLeader ? " leader" : "") + (isHiredSword ? " hired-sword-warrior" : "") + (isDramatisPersonae ? " dp-warrior" : "") + (onPromote ? " has-leader-star" : "")} style={{ animationDelay: (idx * 40) + "ms" }}>
       {onPromote && (
@@ -5607,6 +6002,7 @@ function WarriorCard({ warrior, idx, def, onRename, onFire, onEquip, onSellGear,
           {warrior.canMutate && onEquip && <button className="btn sm" onClick={onEquip}>Mutate</button>}
           {isWizard(warrior) && onSpellbook && <button className="btn sm arcane" onClick={onSpellbook}>Spells</button>}
           {onOpenInjuries && <button className="btn sm ghost notes-btn" onClick={onOpenInjuries} title="Notes & Injuries">Notes</button>}
+          {sigmarMode && onSigmarEdit && <button className="btn sm sigmar-edit-btn" onClick={onSigmarEdit} title="Sigmar Mode: Edit stats and skills">⚔ Edit</button>}
           <button className="btn sm ghost dismiss-btn" onClick={onFire}>Dismiss</button>
         </div>
       </div>
@@ -8306,7 +8702,8 @@ function App() {
           <Roster warband={current}
                   onBack={() => setPage({ name: "home" })}
                   update={(updater) => updateWarband(current.id, updater)}
-                  onExport={() => exportWarband(current)} />
+                  onExport={() => exportWarband(current)}
+                  globalSigmarMode={sigmarMode} />
         )}
       </div>
 
@@ -8433,7 +8830,7 @@ function WarbandCard({ wb, idx, inCampaign, mine, sigmarMode, onOpen, onDelete, 
       )}
       <div className="group-tag">{def.group}</div>
       <h3>{wb.name}</h3>
-      <div className="wb-leader">{def.name} · led by <em>{wb.warriors.find(x => x.role === "Hero")?.name || "(unnamed)"}</em></div>
+      <div className="wb-leader">{def.name} · led by <em>{wb.playerName || "(no player)"}</em></div>
       <div className="wb-stats">
         <div className="wb-stat gold"><span className="v">{wb.gold}</span><span className="l">Gold</span></div>
         <div className="wb-stat"><span className="v">{wb.wyrdstone}</span><span className="l">Shards</span></div>
@@ -8457,18 +8854,23 @@ function NewWarband({ onCancel, onCreate }) {
   const [step, setStep] = useState("faction"); // 'faction' | 'name'
   const [faction, setFaction] = useState(null);
   const [name, setName] = useState("");
+  const [playerName, setPlayerName] = useState("");
+  const [playerNameError, setPlayerNameError] = useState(false);
 
   const create = () => {
+    if (!playerName.trim()) { setPlayerNameError(true); return; }
     const def = MM.WARBANDS[faction];
     const finalName = name.trim() || `The ${def.name} of ${["Drakwald","Reikwald","Sylvania","Stir","Hochland"][Math.floor(Math.random()*5)]}`;
     onCreate({
       id: uid(),
       name: finalName,
+      playerName: playerName.trim(),
       faction,
       gold: def.startGold,
       wyrdstone: 0,
       warriors: [],
       stockpile: [],
+      notes: "",
       createdAt: Date.now(),
     });
   };
@@ -8514,8 +8916,17 @@ function NewWarband({ onCancel, onCreate }) {
               </ul>
             </div>
             <div className="field">
-              <label>Warband Name</label>
-              <input autoFocus value={name} onChange={e => setName(e.target.value)}
+              <label>Player Name <span style={{color:"var(--blood-bright)"}}>*</span></label>
+              <input autoFocus value={playerName}
+                     onChange={e => { setPlayerName(e.target.value); setPlayerNameError(false); }}
+                     placeholder="Your name"
+                     style={playerNameError ? {borderColor:"var(--blood-bright)"} : {}}
+                     onKeyDown={e => e.key === "Enter" && create()} />
+              {playerNameError && <div style={{color:"var(--blood-bright)",fontSize:"0.82rem",marginTop:4}}>Player name is required.</div>}
+            </div>
+            <div className="field">
+              <label>Warband Name <span style={{color:"var(--ink-faint)",fontSize:"0.82rem"}}>(optional)</span></label>
+              <input value={name} onChange={e => setName(e.target.value)}
                      placeholder="e.g. The Black Coach, The Carrion Choir, Hessler's Hounds"
                      onKeyDown={e => e.key === "Enter" && create()} />
             </div>
